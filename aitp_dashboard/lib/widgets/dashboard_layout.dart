@@ -5,12 +5,14 @@ class DashboardLayout extends StatefulWidget {
   final Widget content;
   final int selectedIndex;
   final Function(int) onIndexChanged;
+  final String pageTitle;
 
   const DashboardLayout({
     super.key,
     required this.content,
     required this.selectedIndex,
     required this.onIndexChanged,
+    this.pageTitle = 'Dashboard Overview',
   });
 
   @override
@@ -60,7 +62,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           _buildSidebarItem(3, '📈', 'Analytics'),
           _buildSidebarItem(4, '⚙️', 'Settings'),
           const Spacer(),
-          _buildSidebarItem(5, '🚪', 'Logout'),
+          _buildLogoutButton(),
           const SizedBox(height: 20),
         ],
       ),
@@ -102,7 +104,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondary.withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? AppColors.secondary.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -140,9 +142,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             onPressed: () => setState(() => isSidebarCollapsed = !isSidebarCollapsed),
           ),
           const SizedBox(width: 16),
-          const Text(
-            'Dashboard Overview',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            widget.pageTitle,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           _buildSearchBar(),
@@ -195,6 +197,46 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           child: const Center(child: Text('👨‍💻', style: TextStyle(fontSize: 20))),
         ),
       ],
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to logout?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Logout'),
+              ),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: isSidebarCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            const Text('🚪', style: TextStyle(fontSize: 20)),
+            if (!isSidebarCollapsed) ...[
+              const SizedBox(width: 16),
+              const Text('Logout', style: TextStyle(color: Colors.white70)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

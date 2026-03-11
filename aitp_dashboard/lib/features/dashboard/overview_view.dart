@@ -128,7 +128,7 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
                     barWidth: 4,
                     isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: true, color: AppColors.primary.withOpacity(0.1)),
+                    belowBarData: BarAreaData(show: true, color: AppColors.primary.withValues(alpha: 0.1)),
                   ),
                 ],
               ),
@@ -181,13 +181,23 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: 5,
-        separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
-        itemBuilder: (context, index) => ListTile(
-          leading: CircleAvatar(backgroundColor: AppColors.background, child: const Text('👤')),
-          title: Text('John Doe planned a trip to Paris', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          subtitle: const Text('2 minutes ago', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-          trailing: const Text('View ->', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
-        ),
+        separatorBuilder: (_, _a) => const Divider(height: 1, color: AppColors.border),
+        itemBuilder: (context, index) {
+          final activities = [
+            ('Alice Johnson', 'planned a trip to Paris', '2 min ago'),
+            ('Bob Smith', 'completed a trip to Tokyo', '15 min ago'),
+            ('Charlie Brown', 'booked a flight to Bali', '1 hour ago'),
+            ('Diana Prince', 'updated her itinerary for London', '3 hours ago'),
+            ('Evan Wright', 'cancelled a trip to Dubai', '5 hours ago'),
+          ];
+          final (name, action, time) = activities[index];
+          return ListTile(
+            leading: CircleAvatar(backgroundColor: AppColors.background, child: Text(name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
+            title: Text('$name $action', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            subtitle: Text(time, style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
+            trailing: const Text('View →', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+          );
+        },
       ),
     );
   }

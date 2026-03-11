@@ -90,7 +90,8 @@ class TripsView extends StatelessWidget {
       ),
       child: DataTable(
         headingRowHeight: 56,
-        dataRowHeight: 64,
+        dataRowMinHeight: 56,
+        dataRowMaxHeight: 64,
         horizontalMargin: 24,
         columnSpacing: 24,
         headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain, fontSize: 13),
@@ -157,9 +158,9 @@ class TripsView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status,

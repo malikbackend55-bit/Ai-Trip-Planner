@@ -3,6 +3,9 @@ import 'core/theme.dart';
 import 'widgets/dashboard_layout.dart';
 import 'features/dashboard/overview_view.dart';
 import 'features/dashboard/trips_view.dart';
+import 'features/dashboard/users_view.dart';
+import 'features/analytics/analytics_view.dart';
+import 'features/settings/settings_view.dart';
 
 void main() {
   runApp(const AitpDashboardApp());
@@ -35,41 +38,28 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _views = [
     const OverviewView(),
     const TripsView(),
-    const _PlaceholderView(title: 'User Management', icon: '👥'),
-    const _PlaceholderView(title: 'Advanced Analytics', icon: '📈'),
-    const _PlaceholderView(title: 'System Settings', icon: '⚙️'),
+    const UsersView(),
+    const AnalyticsView(),
+    const SettingsView(),
+  ];
+
+  final List<String> _pageTitles = [
+    'Dashboard Overview',
+    'Trip Management',
+    'User Management',
+    'Advanced Analytics',
+    'System Settings',
   ];
 
   @override
   Widget build(BuildContext context) {
     return DashboardLayout(
       selectedIndex: _selectedIndex,
+      pageTitle: _pageTitles[_selectedIndex],
       onIndexChanged: (index) {
         setState(() => _selectedIndex = index);
       },
       content: _views[_selectedIndex],
-    );
-  }
-}
-
-class _PlaceholderView extends StatelessWidget {
-  final String title;
-  final String icon;
-  const _PlaceholderView({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 64)),
-          const SizedBox(height: 24),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          const Text('Detailed management view coming soon...', style: TextStyle(color: Colors.grey)),
-        ],
-      ),
     );
   }
 }
