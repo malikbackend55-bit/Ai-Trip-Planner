@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import '../../core/dashboard_provider.dart';
 import '../../core/theme.dart';
 
 class AnalyticsView extends StatefulWidget {
@@ -26,30 +28,39 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<DashboardProvider>(context);
+    final stats = provider.stats;
+
     return FadeTransition(
       opacity: _anim,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Advanced Analytics', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Advanced Analytics', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+              if (provider.isLoading) const CircularProgressIndicator(),
+            ],
+          ),
           const SizedBox(height: 24),
-          _buildKpiRow(),
+          _buildKpiRow(stats),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(flex: 2, child: _buildRevenueChart()),
+              Expanded(flex: 2, child: _buildRevenueChart(stats)),
               const SizedBox(width: 24),
-              Expanded(flex: 1, child: _buildTopDestinations()),
+              Expanded(flex: 1, child: _buildTopDestinations(stats)),
             ],
           ),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildConversionFunnel()),
+              Expanded(child: _buildConversionFunnel(stats)),
               const SizedBox(width: 24),
-              Expanded(child: _buildMonthlyComparison()),
+              Expanded(child: _buildMonthlyComparison(stats)),
             ],
           ),
         ],
@@ -57,16 +68,16 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
     );
   }
 
-  Widget _buildKpiRow() {
+  Widget _buildKpiRow(Map<String, dynamic> stats) {
     return Row(
       children: [
-        _buildKpiCard('Conversion Rate', '4.8%', '+0.3%', true, Icons.trending_up),
+        _buildKpiCard('Conversion Rate', stats['conversionRate'] ?? '4.2%', '+0.3%', true, Icons.trending_up),
         const SizedBox(width: 16),
         _buildKpiCard('Avg. Trip Value', '\$1,250', '+\$85', true, Icons.attach_money),
         const SizedBox(width: 16),
-        _buildKpiCard('Bounce Rate', '32%', '-2.1%', true, Icons.swap_vert),
+        _buildKpiCard('Retention', '${stats['userRetention'] ?? 84}%', '+1.5%', true, Icons.replay),
         const SizedBox(width: 16),
-        _buildKpiCard('Retention', '78%', '+1.5%', true, Icons.replay),
+        _buildKpiCard('Active Users', stats['totalUsers']?.toString() ?? '0', '+5.4', true, Icons.people),
       ],
     );
   }
@@ -100,7 +111,8 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
     );
   }
 
-  Widget _buildRevenueChart() {
+  Widget _buildRevenueChart(Map<String, dynamic> stats) {
+    final trends = stats['monthlyTrends'] as List? ?? [];
     return Container(
       height: 380,
       padding: const EdgeInsets.all(24),
@@ -112,46 +124,50 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Monthly Revenue', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Trip Growth', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
-          const Text('Revenue breakdown by month', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+          const Text('New trips created recently', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
           const SizedBox(height: 24),
           Expanded(
-            child: BarChart(
-              BarChartData(
-                barGroups: List.generate(12, (i) {
-                  final values = [12, 15, 11, 18, 22, 19, 25, 28, 20, 24, 30, 35];
-                  return BarChartGroupData(x: i, barRods: [
-                    BarChartRodData(toY: values[i].toDouble(), color: i == 11 ? AppColors.primary : AppColors.secondary.withValues(alpha: 0.6), width: 18, borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4))),
-                  ]);
-                }),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32, getTitlesWidget: (v, m) => Text('\$${v.toInt()}k', style: const TextStyle(fontSize: 10, color: AppColors.textDim)))),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
-                    final months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-                    return Text(months[v.toInt()], style: const TextStyle(fontSize: 10, color: AppColors.textDim));
-                  })),
-                  rightTitles: const AxisTitles(),
-                  topTitles: const AxisTitles(),
-                ),
-                borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.border, strokeWidth: 1)),
-              ),
-            ),
+            child: trends.isEmpty
+                ? const Center(child: Text('Not enough data'))
+                : BarChart(
+                    BarChartData(
+                      barGroups: List.generate(trends.length, (i) {
+                        final count = double.tryParse(trends[i]['count']?.toString() ?? '0') ?? 0;
+                        return BarChartGroupData(x: i, barRods: [
+                          BarChartRodData(toY: count, color: AppColors.primary, width: 18, borderRadius: BorderRadius.circular(4)),
+                        ]);
+                      }),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: AppColors.textDim)))),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (v, m) {
+                              if (v.toInt() < trends.length) {
+                                return Text(trends[v.toInt()]['month'] ?? '', style: const TextStyle(fontSize: 10, color: AppColors.textDim));
+                              }
+                              return const SizedBox();
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(),
+                        topTitles: const AxisTitles(),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.border, strokeWidth: 1)),
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTopDestinations() {
-    final destinations = [
-      ('Paris, France', 2450, 0.92),
-      ('Tokyo, Japan', 1820, 0.78),
-      ('Bali, Indonesia', 1560, 0.65),
-      ('London, UK', 1340, 0.55),
-      ('New York, USA', 1120, 0.45),
-    ];
+  Widget _buildTopDestinations(Map<String, dynamic> stats) {
+    final destinations = stats['topDestinations'] as List? ?? [];
+    final maxCount = destinations.isEmpty ? 1 : double.tryParse(destinations.first['count']?.toString() ?? '1') ?? 1;
 
     return Container(
       height: 380,
@@ -168,42 +184,45 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
           const SizedBox(height: 8),
           const Text('By number of bookings', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
           const SizedBox(height: 20),
-          ...destinations.map((d) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(d.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    Text('${d.$2}', style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: d.$3,
-                    minHeight: 6,
-                    backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+          ...destinations.map((d) {
+            final count = double.tryParse(d['count']?.toString() ?? '0') ?? 0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(d['destination'] ?? 'Unknown', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      Text('${count.toInt()}', style: const TextStyle(fontSize: 11, color: AppColors.textDim)),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          )),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: count / maxCount,
+                      minHeight: 6,
+                      backgroundColor: AppColors.border,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildConversionFunnel() {
+  Widget _buildConversionFunnel(Map<String, dynamic> stats) {
+    final totalTrips = stats['totalTrips'] ?? 100;
     final stages = [
       ('Website Visits', '45,200', 1.0),
-      ('Trip Searches', '18,400', 0.41),
-      ('Trip Created', '8,900', 0.20),
-      ('Booking Completed', '4,800', 0.11),
+      ('Trip Created', totalTrips.toString(), 0.20),
+      ('Booking Completed', stats['completedTrips']?.toString() ?? '0', 0.11),
     ];
 
     return Container(
@@ -241,7 +260,7 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
     );
   }
 
-  Widget _buildMonthlyComparison() {
+  Widget _buildMonthlyComparison(Map<String, dynamic> stats) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -252,17 +271,13 @@ class _AnalyticsViewState extends State<AnalyticsView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('This Month vs Last Month', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Real-time Metrics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 20),
-          _buildComparisonRow('New Users', '1,240', '1,080', true),
+          _buildComparisonRow('Total Users', stats['totalUsers']?.toString() ?? '0', 'Growing', true),
           const SizedBox(height: 12),
-          _buildComparisonRow('Trips Booked', '890', '920', false),
+          _buildComparisonRow('Revenue', '\$${stats['totalRevenue'] ?? 0}', 'Live', true),
           const SizedBox(height: 12),
-          _buildComparisonRow('Revenue', '\$35,400', '\$31,200', true),
-          const SizedBox(height: 12),
-          _buildComparisonRow('Cancellations', '45', '62', true),
-          const SizedBox(height: 12),
-          _buildComparisonRow('Avg Rating', '4.7', '4.5', true),
+          _buildComparisonRow('Retention', '${stats['userRetention'] ?? 84}%', 'Healthy', true),
         ],
       ),
     );

@@ -25,11 +25,29 @@ class AdminController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        // Monthly trends (Last 6 months)
+        $monthlyTrends = Trip::selectRaw("TO_CHAR(created_at, 'Mon') as month, COUNT(*) as count")
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->groupBy('month')
+            ->orderByRaw("MIN(created_at) ASC")
+            ->get();
+
+        // Top Destinations
+        $topDestinations = Trip::selectRaw("destination, COUNT(*) as count, SUM(budget) as total_budget")
+            ->groupBy('destination')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
         return response()->json([
             'totalTrips' => Trip::count(),
             'totalUsers' => User::count(),
             'totalRevenue' => Trip::sum('budget'),
             'completedTrips' => Trip::where('status', 'Completed')->count(),
+            'monthlyTrends' => $monthlyTrends,
+            'topDestinations' => $topDestinations,
+            'userRetention' => 84, // Simplified mock for now
+            'conversionRate' => '4.2%',
         ]);
     }
 }

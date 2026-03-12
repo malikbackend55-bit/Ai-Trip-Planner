@@ -54,7 +54,7 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
         const SizedBox(height: 32),
         _buildAnimatedSection(0.2, _buildSectionHeader('Analytics & Growth')),
         const SizedBox(height: 20),
-        _buildAnimatedSection(0.3, _buildChartsRow()),
+        _buildAnimatedSection(0.3, _buildChartsRow(provider)),
         const SizedBox(height: 32),
         _buildAnimatedSection(0.4, _buildSectionHeader('Recent Activity')),
         const SizedBox(height: 20),
@@ -111,17 +111,24 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildChartsRow() {
+  Widget _buildChartsRow(DashboardProvider provider) {
     return Row(
       children: [
-        Expanded(flex: 2, child: _buildMainChart()),
+        Expanded(flex: 2, child: _buildMainChart(provider)),
         const SizedBox(width: 24),
-        Expanded(flex: 1, child: _buildDistributionChart()),
+        Expanded(flex: 1, child: _buildDistributionChart(provider)),
       ],
     );
   }
 
-  Widget _buildMainChart() {
+  Widget _buildMainChart(DashboardProvider provider) {
+    final trends = provider.stats['monthlyTrends'] as List? ?? [];
+    final spots = trends.asMap().entries.map((entry) {
+      final index = entry.key.toDouble();
+      final count = double.tryParse(entry.value['count']?.toString() ?? '0') ?? 0;
+      return FlSpot(index, count);
+    }).toList();
+
     return Container(
       height: 400,
       padding: const EdgeInsets.all(24),
@@ -136,31 +143,50 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
           const Text('Trip Volume Over Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 40),
           Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.border, strokeWidth: 1)),
-                titlesData: FlTitlesData(show: true, rightTitles: const AxisTitles(), topTitles: const AxisTitles(), bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: AppColors.textDim))))),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [FlSpot(0, 3), FlSpot(2, 2), FlSpot(4, 5), FlSpot(6, 3.1), FlSpot(8, 4), FlSpot(10, 3), FlSpot(12, 7)],
-                    isCurved: true,
-                    color: AppColors.primary,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: true, color: AppColors.primary.withValues(alpha: 0.1)),
+            child: spots.isEmpty
+                ? const Center(child: Text('Insufficient data for trends', style: TextStyle(color: AppColors.textDim)))
+                : LineChart(
+                    LineChartData(
+                      gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.border, strokeWidth: 1)),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        rightTitles: const AxisTitles(),
+                        topTitles: const AxisTitles(),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (v, m) {
+                              if (v.toInt() < trends.length) {
+                                return Text(trends[v.toInt()]['month'] ?? '', style: const TextStyle(fontSize: 10, color: AppColors.textDim));
+                              }
+                              return const SizedBox();
+                            },
+                          ),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          color: AppColors.primary,
+                          barWidth: 4,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(show: true, color: AppColors.primary.withValues(alpha: 0.1)),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDistributionChart() {
+  Widget _buildDistributionChart(DashboardProvider provider) {
+    final destinations = provider.stats['topDestinations'] as List? ?? [];
+    
     return Container(
       height: 400,
       padding: const EdgeInsets.all(24),
@@ -172,19 +198,27 @@ class _OverviewViewState extends State<OverviewView> with SingleTickerProviderSt
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('User Distribution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Top Destinations Distribution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 40),
           Expanded(
-            child: PieChart(
-              PieChartData(
-                sections: [
-                  PieChartSectionData(color: AppColors.primary, value: 40, title: '40%', radius: 50, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  PieChartSectionData(color: AppColors.secondary, value: 30, title: '30%', radius: 45, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  PieChartSectionData(color: AppColors.accent, value: 20, title: '20%', radius: 40, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  PieChartSectionData(color: AppColors.textDim, value: 10, title: '10%', radius: 35, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
+            child: destinations.isEmpty
+                ? const Center(child: Text('No destination data', style: TextStyle(color: AppColors.textDim)))
+                : PieChart(
+                    PieChartData(
+                      sections: destinations.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final data = entry.value;
+                        final colors = [AppColors.primary, AppColors.secondary, AppColors.accent, AppColors.g400, AppColors.g200];
+                        return PieChartSectionData(
+                          color: colors[index % colors.length],
+                          value: double.tryParse(data['count']?.toString() ?? '0') ?? 0,
+                          title: data['destination']?.split(',').first ?? '',
+                          radius: 50 - (index * 2).toDouble(),
+                          titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                        );
+                      }).toList(),
+                    ),
+                  ),
           ),
         ],
       ),
