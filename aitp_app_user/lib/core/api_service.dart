@@ -57,6 +57,10 @@ class ApiService {
     return dio.post('/trips', data: data);
   }
 
+  Future<Response> generateTrip(Map<String, dynamic> data) async {
+    return dio.post('/trips/generate', data: data);
+  }
+
   // User Profile
   Future<Response> getUser() async {
     return dio.get('/user');

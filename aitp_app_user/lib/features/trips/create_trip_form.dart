@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../core/trip_provider.dart';
+import '../main_navigation.dart';
 
 class CreateTripForm extends StatefulWidget {
   const CreateTripForm({super.key});
@@ -10,9 +13,21 @@ class CreateTripForm extends StatefulWidget {
 
 class _CreateTripFormState extends State<CreateTripForm> {
   int _currentStep = 1;
+  bool _isGenerating = false;
+  String _aiStatus = 'Initializing Gemini AI...';
+
+  // State Data
+  final TextEditingController _destinationController = TextEditingController();
+  DateTime _startDate = DateTime.now().add(const Duration(days: 7));
+  DateTime _endDate = DateTime.now().add(const Duration(days: 14));
+  double _budget = 3500;
+  List<String> _selectedInterests = ['Museums', 'Fine Dining', 'Walking Tours', 'Nature'];
+  int _guests = 2;
 
   @override
   Widget build(BuildContext context) {
+    if (_isGenerating) return _buildAiLoading();
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Column(
@@ -26,6 +41,30 @@ class _CreateTripFormState extends State<CreateTripForm> {
           ),
           _buildFooter(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAiLoading() {
+    return Scaffold(
+      backgroundColor: AppColors.g800,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🧠', style: TextStyle(fontSize: 64)),
+            const SizedBox(height: 32),
+            Text(
+              _aiStatus,
+              style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const SizedBox(
+              width: 200,
+              child: LinearProgressIndicator(color: AppColors.g400, backgroundColor: AppColors.g700),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,7 +145,15 @@ class _CreateTripFormState extends State<CreateTripForm> {
         _buildLabel('FROM'),
         _buildInput('📍 New York, USA', isFilled: true),
         _buildLabel('TO (DESTINATION)'),
-        _buildInput('🌍 Search destination...'),
+        TextField(
+          controller: _destinationController,
+          decoration: InputDecoration(
+            hintText: '🌍 Search destination...',
+            filled: true,
+            fillColor: AppColors.gray50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.gray200)),
+          ),
+        ),
         _buildLabel('POPULAR DESTINATIONS'),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -172,7 +219,17 @@ class _CreateTripFormState extends State<CreateTripForm> {
           ),
         ),
         const SizedBox(height: 24),
-        Slider(value: 0.35, onChanged: (v) {}, activeColor: AppColors.g500, inactiveColor: AppColors.gray200),
+        Slider(
+          value: _budget, 
+          min: 500,
+          max: 10000,
+          divisions: 19,
+          onChanged: (v) {
+            setState(() => _budget = v);
+          }, 
+          activeColor: AppColors.g500, 
+          inactiveColor: AppColors.gray200
+        ),
         _buildLabel('ACCOMMODATION TYPE'),
         GridView.count(
           shrinkWrap: true,
@@ -203,15 +260,69 @@ class _CreateTripFormState extends State<CreateTripForm> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _Interest(label: '🏛️ Museums', isOn: true),
-            _Interest(label: '🍽️ Fine Dining', isOn: true),
-            _Interest(label: '🥾 Hiking'),
-            _Interest(label: '🚶 Walking Tours', isOn: true),
-            _Interest(label: '🌿 Nature', isOn: true),
-          ],
+            '🏛️ Museums', '🍽️ Fine Dining', '🥾 Hiking', '🚶 Walking Tours', '🌿 Nature', '🛍️ Shopping', '🎨 Art'
+          ].map((interest) {
+            final isSelected = _selectedInterests.contains(interest);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedInterests.remove(interest);
+                  } else {
+                    _selectedInterests.add(interest);
+                  }
+                });
+              },
+              child: _Interest(label: interest, isOn: isSelected),
+            );
+          }).toList(),
         ),
       ],
     );
+  }
+
+  void _handleGenerate() async {
+    setState(() {
+      _isGenerating = true;
+    });
+
+    final statuses = [
+      'Analyzing your interests...',
+      'Mapping destinations in ${_destinationController.text}...',
+      'Calculating optimal routes...',
+      'Polishing your premium itinerary...',
+    ];
+
+    for (var status in statuses) {
+      if (!mounted) return;
+      setState(() => _aiStatus = status);
+      await Future.delayed(const Duration(milliseconds: 1500));
+    }
+
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    final success = await tripProvider.generateTrip({
+      'destination': _destinationController.text.isEmpty ? 'Paris, France' : _destinationController.text,
+      'start_date': _startDate.toIso8601String(),
+      'end_date': _endDate.toIso8601String(),
+      'budget': _budget,
+      'interests': _selectedInterests,
+    });
+
+    if (success) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          (route) => false,
+        );
+      }
+    } else {
+      setState(() => _isGenerating = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Generation failed. Please try again.')),
+        );
+      }
+    }
   }
 
   Widget _buildFooter() {
@@ -223,7 +334,7 @@ class _CreateTripFormState extends State<CreateTripForm> {
           if (_currentStep < 4) {
             setState(() => _currentStep++);
           } else {
-            Navigator.pop(context);
+            _handleGenerate();
           }
         },
         child: Text(_currentStep < 4 ? 'Next → ${_getStepTitle()}' : '✨ Generate My Itinerary'),

@@ -7,8 +7,16 @@ use App\Models\Trip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Services\AiService;
+
 class TripController extends Controller
 {
+    protected $aiService;
+
+    public function __construct(AiService $aiService)
+    {
+        $this->aiService = $aiService;
+    }
     public function index()
     {
         $trips = Auth::user()->trips()->with('itineraries.activities')->orderBy('created_at', 'desc')->get();
@@ -53,6 +61,51 @@ class TripController extends Controller
         $trip->update($validated);
 
         return response()->json($trip);
+    }
+
+    public function generate(Request $request)
+    {
+        $validated = $request->validate([
+            'destination' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'interests' => 'required|array',
+            'budget' => 'nullable|numeric',
+        ]);
+
+        $start = new \DateTime($validated['start_date']);
+        $end = new \DateTime($validated['end_date']);
+        $days = $start->diff($end)->days + 1;
+
+        // Create the base trip
+        $trip = Auth::user()->trips()->create([
+            'destination' => $validated['destination'],
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'budget' => $validated['budget'] ?? 0,
+            'status' => 'Upcoming',
+        ]);
+
+        // Generate AI Itinerary
+        $itineraryData = $this->aiService->generateItinerary([
+            'destination' => $validated['destination'],
+            'interests' => $validated['interests'],
+            'days' => $days
+        ]);
+
+        // Save Itineraries and Activities
+        foreach ($itineraryData as $dayData) {
+            $itinerary = $trip->itineraries()->create([
+                'day_number' => $dayData['day_number'],
+                'description' => $dayData['description'],
+            ]);
+
+            foreach ($dayData['activities'] as $activityData) {
+                $itinerary->activities()->create($activityData);
+            }
+        }
+
+        return response()->json($trip->load('itineraries.activities'), 201);
     }
 
     public function destroy($id)

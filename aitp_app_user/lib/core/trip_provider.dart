@@ -23,12 +23,18 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createTrip(Map<String, dynamic> data) async {
+  Future<bool> generateTrip(Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      await _apiService.createTrip(data);
+      await _apiService.generateTrip(data);
       await fetchTrips();
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
+      _isLoading = false;
+      notifyListeners();
       return false;
     }
   }
