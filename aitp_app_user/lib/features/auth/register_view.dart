@@ -13,8 +13,11 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _formOffset;
+   late AnimationController _controller;
+   late Animation<Offset> _formOffset;
+   final TextEditingController _nameController = TextEditingController();
+   final TextEditingController _emailController = TextEditingController();
+   final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -129,7 +132,7 @@ class _RegisterViewState extends State<RegisterView> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, {bool isPassword = false}) {
+  Widget _buildTextField(String label, IconData icon, {bool isPassword = false, TextEditingController? controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -154,6 +157,39 @@ class _RegisterViewState extends State<RegisterView> with SingleTickerProviderSt
         ),
       ],
     );
+  }
+
+  Future<void> _handleRegister() async {
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all fields')),
+        );
+      }
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.register(
+      _nameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (success) {
+      // Navigate to main navigation on successful registration
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+      );
+    } else {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration failed. Please try again.')),
+        );
+      }
+    }
   }
 
   Widget _buildTerms() {

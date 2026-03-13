@@ -14,8 +14,10 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _formOffset;
+   late AnimationController _controller;
+   late Animation<Offset> _formOffset;
+   final TextEditingController _emailController = TextEditingController();
+   final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -181,7 +183,7 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, {bool isPassword = false}) {
+  Widget _buildTextField(String label, IconData icon, {bool isPassword = false, TextEditingController? controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -206,6 +208,27 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
         ),
       ],
     );
+  }
+
+  Future<void> _handleLogin() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (success) {
+      // Navigate to main navigation on successful login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+      );
+    } else {
+      // Show error message (you can use a dialog or snack bar)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login failed. Please check your credentials.')),
+        );
+      }
+    }
   }
 
   Widget _buildSocialButton(String label, String icon) {

@@ -1,6 +1,12 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/auth_provider.dart';
 import 'core/trip_provider.dart';
+import 'core/theme.dart';
+import 'features/auth/splash_view.dart';
+import 'features/main_navigation.dart';
+import 'features/auth/login_view.dart';
 
 void main() {
   runApp(

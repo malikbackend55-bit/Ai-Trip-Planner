@@ -47,29 +47,28 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeader(context),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   _buildAnimatedSection(0.1, _buildQuickActions(context)),
-                  const SizedBox(height: 24),
-                  _buildAnimatedSection(0.2, _buildSectionHeader('Your Trips', 'See all →')),
-                  const SizedBox(height: 12),
-                  _buildAnimatedSection(0.3, _buildTripSection(tripProvider)),
-                  const SizedBox(height: 24),
-                  _buildAnimatedSection(0.4, _buildSectionHeader('Suggested for You', 'More →')),
-                  const SizedBox(height: 12),
-                  _buildAnimatedSection(0.5, _buildSuggestedDestinations()),
-                  const SizedBox(height: 80), // Space for bottom nav
-                ],
-              ),
+              _buildHeader(context),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     _buildAnimatedSection(0.1, _buildQuickActions(context)),
+                    const SizedBox(height: 24),
+                    _buildAnimatedSection(0.2, _buildSectionHeader('Your Trips', 'See all →')),
+                    const SizedBox(height: 12),
+                    _buildAnimatedSection(0.3, _buildTripSection(tripProvider)),
+                    const SizedBox(height: 24),
+                    _buildAnimatedSection(0.4, _buildSectionHeader('Suggested for You', 'More →')),
+                    const SizedBox(height: 12),
+                    _buildAnimatedSection(0.5, _buildSuggestedDestinations()),
+                    const SizedBox(height: 80), // Space for bottom nav
+                  ],
+                ),
+              ),]
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
   }
 
   Widget _buildAnimatedSection(double delay, Widget child) {
@@ -117,14 +116,14 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
               'Start planning your first adventure!',
               style: TextStyle(color: AppColors.gray400, fontSize: 12),
             ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTripForm())),
-              child: const Text('Create Trip'),
-            ),
-          ],
-        ),
-      );
+             const SizedBox(height: 16),
+             TextButton(
+               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTripForm())),
+               child: const Text('Create Trip'),
+             ),
+           ],
+         ),
+       );
     }
 
     // Just show the first one for now as a "hero" trip
@@ -304,86 +303,92 @@ class _TripCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ItineraryView(trip: trip))),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ItineraryView(trip: trip)),
+            );
+          },
           borderRadius: BorderRadius.circular(24),
           child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Container(
-                height: 100,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.g700, AppColors.g500],
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Container(
+                  height: 100,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.g700, AppColors.g500],
+                    ),
+                  ),
+                  child: const Stack(
+                    children: [
+                      Center(child: Text('✈️', style: TextStyle(fontSize: 48))),
+                    ],
                   ),
                 ),
-                child: const Stack(
-                  children: [
-                    Center(child: Text('✈️', style: TextStyle(fontSize: 48))),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      destination,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '📅 $startDate · $status',
-                      style: const TextStyle(fontSize: 11, color: AppColors.gray400),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text('Estimated Budget', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              LinearProgressIndicator(
-                                value: 1.0,
-                                backgroundColor: AppColors.gray100,
-                                valueColor: const AlwaysStoppedAnimation(AppColors.g500),
-                                borderRadius: BorderRadius.circular(10),
-                                minHeight: 6,
-                              ),
-                            ],
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        destination,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '📅 $startDate · $status',
+                        style: const TextStyle(fontSize: 11, color: AppColors.gray400),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: const [
+                                    Text('Estimated Budget', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                LinearProgressIndicator(
+                                  value: 1.0,
+                                  backgroundColor: AppColors.gray100,
+                                  valueColor: const AlwaysStoppedAnimation(AppColors.g500),
+                                  borderRadius: BorderRadius.circular(10),
+                                  minHeight: 6,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          '\$${budget.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.g700),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 16),
+                          Text(
+                            '\$${budget.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.g700),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
