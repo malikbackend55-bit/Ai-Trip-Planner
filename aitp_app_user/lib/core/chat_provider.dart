@@ -23,7 +23,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     ];
   }
 
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {Map<String, dynamic>? contextData}) async {
     if (text.trim().isEmpty) return;
 
     // 1. Add user message to UI immediately
@@ -37,7 +37,10 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
       // Let's rely on the ApiService's dio instance.
       final response = await _apiService.dio.post(
         '/chat',
-        data: {'message': text},
+        data: {
+          'message': text,
+          'context': contextData,
+        },
       );
 
       if (response.statusCode == 200 && response.data['status'] == 'success') {

@@ -67,7 +67,10 @@ class _MyAppState extends State<MyApp> {
         ),
         GoRoute(
           path: '/chat',
-          builder: (context, state) => const ChatView(),
+          builder: (context, state) {
+            final trip = state.extra as Map<String, dynamic>?;
+            return ChatView(trip: trip);
+          },
         ),
       ],
     );

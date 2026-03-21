@@ -51,7 +51,7 @@ class AiService
     /**
      * Generate a mock AI chat response based on user input.
      */
-    public function generateChatResponse(string $message, $user)
+    public function generateChatResponse(string $message, $user, ?array $context = null)
     {
         $message = strtolower(trim($message));
         $name = $user ? $user->name : 'there';
@@ -59,14 +59,19 @@ class AiService
         
         // Extract Destination if explicitly mentioned
         $destination = null;
-        if (preg_match('/(in|for|to)\s+([a-z\s]+)(weather|trip|stay)?/i', $message, $matches)) {
-            // Very naive extraction, but better than nothing for a simple mock
+
+        // Try getting it from the frontend context first
+        if ($context && isset($context['destination'])) {
+            $destination = $context['destination'];
+        } 
+        // Fallback to text matching
+        else if (preg_match('/(in|for|to)\s+([a-z\s]+)(weather|trip|stay)?/i', $message, $matches)) {
             $words = explode(' ', trim($matches[2]));
             if (count($words) <= 3) {
                 $destination = ucwords(trim($matches[2]));
             }
         }
-        // Fallback destination extraction for common cities
+        
         if (!$destination && preg_match('/(paris|tokyo|london|rome|new york|bali|arbil|erbīl)/i', $message, $matches)) {
             $destination = ucwords($matches[1]);
         }
@@ -96,8 +101,17 @@ class AiService
         }
 
         // 4. Budget
-        if (str_contains($message, 'budget') || str_contains($message, 'cheap') || str_contains($message, 'affordable')) {
+        if (str_contains($message, 'budget') || str_contains($message, 'cheap') || str_contains($message, 'affordable') || str_contains($message, 'cost')) {
             $responses[] = "Traveling economically is completely doable! I recommend looking for hostels, using public transport tickets, and trying out local street food markets.";
+        }
+
+        // 5. Food
+        if (str_contains($message, 'food') || str_contains($message, 'eat') || str_contains($message, 'restaurant') || str_contains($message, 'dining') || str_contains($message, 'meal')) {
+            if ($destination) {
+                $responses[] = "The food scene in $destination is incredible! I highly suggest diving into the local street food for authentic and cheap eats, or looking up highly-rated regional specialty restaurants near the main square.";
+            } else {
+                $responses[] = "I love talking about food! 🍕 If you tell me where you are going, I can recommend the best local dishes to try.";
+            }
         }
 
         // 5. General Tips

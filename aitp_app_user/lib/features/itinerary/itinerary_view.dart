@@ -27,7 +27,7 @@ class _ItineraryViewState extends State<ItineraryView> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/chat'),
+        onPressed: () => context.push('/chat', extra: widget.trip),
         backgroundColor: AppColors.g600,
         child: const Text('🤖', style: TextStyle(fontSize: 24)),
       ),

@@ -5,7 +5,8 @@ import '../../core/theme.dart';
 import '../../core/chat_provider.dart';
 
 class ChatView extends ConsumerStatefulWidget {
-  const ChatView({super.key});
+  final Map<String, dynamic>? trip;
+  const ChatView({super.key, this.trip});
 
   @override
   ConsumerState<ChatView> createState() => _ChatViewState();
@@ -30,7 +31,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     if (text.isEmpty) return;
     
     _textController.clear();
-    ref.read(chatProvider.notifier).sendMessage(text);
+    ref.read(chatProvider.notifier).sendMessage(text, contextData: widget.trip);
     
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
