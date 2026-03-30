@@ -5,8 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   late Dio dio;
   static String get baseUrl {
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api';
+    const String apiUrl = String.fromEnvironment('API_URL');
+    if (apiUrl.isNotEmpty) {
+      return apiUrl;
+    }
+    
+    // Fallback for local development
+    try {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:8000/api';
+      }
+    } catch (_) {
+      // Platform check fails on Web
     }
     return 'http://localhost:8000/api';
   }

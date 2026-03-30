@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -10,11 +11,18 @@ class GeminiService
 {
     protected string $apiKey;
     protected string $baseUrl;
+    protected string $defaultModel;
+    protected array $fallbackModels;
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key', env('GEMINI_API_KEY', ''));
-        $this->baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+        $this->baseUrl = rtrim(config('services.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta'), '/');
+        $this->defaultModel = trim(config('services.gemini.model', 'gemini-2.5-flash'));
+        $this->fallbackModels = array_values(array_filter(array_map(
+            'trim',
+            explode(',', config('services.gemini.fallback_models', 'gemini-2.5-flash-lite'))
+        )));
     }
 
     /**
@@ -41,22 +49,74 @@ class GeminiService
             $body['generationConfig']['responseMimeType'] = 'application/json';
         }
 
-        /** @var \Illuminate\Http\Client\Response $response */
-        $response = Http::timeout(60)->post(
-            $this->baseUrl . '?key=' . $this->apiKey,
-            $body
-        );
+        $lastException = null;
 
-        if (!$response->successful()) {
+        foreach ($this->modelsToTry() as $model) {
+            $response = Http::timeout(60)
+                ->acceptJson()
+                ->withHeaders([
+                    'x-goog-api-key' => $this->apiKey,
+                ])
+                ->post($this->modelEndpoint($model), $body);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            }
+
+            if ($this->shouldTryNextModel($response)) {
+                Log::warning('Gemini model not found, trying fallback model', [
+                    'model' => $model,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                $lastException = new Exception($this->formatGeminiError($model, $response));
+                continue;
+            }
+
             Log::error('Gemini API error', [
+                'model' => $model,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new Exception('Gemini API request failed: ' . $response->status());
+            throw new Exception($this->formatGeminiError($model, $response));
         }
 
-        $data = $response->json();
-        return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        throw $lastException ?? new Exception('Gemini API request failed before a response was received.');
+    }
+
+    protected function modelsToTry(): array
+    {
+        return array_values(array_unique(array_filter([
+            $this->defaultModel,
+            ...$this->fallbackModels,
+        ])));
+    }
+
+    protected function modelEndpoint(string $model): string
+    {
+        return "{$this->baseUrl}/models/{$model}:generateContent";
+    }
+
+    protected function shouldTryNextModel(Response $response): bool
+    {
+        if ($response->status() !== 404) {
+            return false;
+        }
+
+        return strtoupper((string) data_get($response->json(), 'error.status')) === 'NOT_FOUND';
+    }
+
+    protected function formatGeminiError(string $model, Response $response): string
+    {
+        $message = data_get($response->json(), 'error.message');
+
+        if (is_string($message) && $message !== '') {
+            return "Gemini API request failed for model {$model}: {$message}";
+        }
+
+        return "Gemini API request failed for model {$model}: HTTP {$response->status()}";
     }
 
     /**
