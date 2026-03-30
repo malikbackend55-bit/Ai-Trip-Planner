@@ -13,6 +13,9 @@ class GeminiService
     protected string $baseUrl;
     protected string $defaultModel;
     protected array $fallbackModels;
+    protected int $requestTimeout;
+    protected int $chatMaxOutputTokens;
+    protected int $itineraryMaxOutputTokens;
 
     public function __construct()
     {
@@ -23,6 +26,9 @@ class GeminiService
             'trim',
             explode(',', config('services.gemini.fallback_models', 'gemini-2.5-flash-lite'))
         )));
+        $this->requestTimeout = $this->positiveIntConfig('services.gemini.request_timeout', 60);
+        $this->chatMaxOutputTokens = $this->positiveIntConfig('services.gemini.chat_max_output_tokens', 1024);
+        $this->itineraryMaxOutputTokens = $this->positiveIntConfig('services.gemini.itinerary_max_output_tokens', 4096);
     }
 
     /**
@@ -52,7 +58,7 @@ class GeminiService
         $lastException = null;
 
         foreach ($this->modelsToTry() as $model) {
-            $response = Http::timeout(60)
+            $response = Http::timeout($this->requestTimeout)
                 ->acceptJson()
                 ->withHeaders([
                     'x-goog-api-key' => $this->apiKey,
@@ -119,6 +125,13 @@ class GeminiService
         return "Gemini API request failed for model {$model}: HTTP {$response->status()}";
     }
 
+    protected function positiveIntConfig(string $key, int $default): int
+    {
+        $value = (int) config($key, $default);
+
+        return $value > 0 ? $value : $default;
+    }
+
     /**
      * Generate trip itinerary using Gemini AI.
      * Returns array matching the DB schema: day_number, description, activities[time_slot, activity_name, location, notes].
@@ -165,7 +178,7 @@ PROMPT;
         ];
 
         try {
-            $raw = $this->callGemini($systemPrompt, $contents, true, 4096, 0.7);
+            $raw = $this->callGemini($systemPrompt, $contents, true, $this->itineraryMaxOutputTokens, 0.7);
             $itinerary = json_decode($raw, true);
 
             if (!is_array($itinerary)) {
@@ -227,7 +240,7 @@ SYS;
         ];
 
         try {
-            $response = $this->callGemini($systemPrompt, $contents, false, 1024, 0.9);
+            $response = $this->callGemini($systemPrompt, $contents, false, $this->chatMaxOutputTokens, 0.9);
             return $response ?? "I'm sorry, I couldn't process that request. Could you try rephrasing?";
         } catch (Exception $e) {
             Log::error('Gemini chat failed, using fallback', ['error' => $e->getMessage()]);

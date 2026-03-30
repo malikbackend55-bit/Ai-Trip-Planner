@@ -40,6 +40,9 @@ return [
         'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
         'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
         'fallback_models' => env('GEMINI_FALLBACK_MODELS', 'gemini-2.5-flash-lite'),
+        'request_timeout' => env('GEMINI_REQUEST_TIMEOUT', 60),
+        'chat_max_output_tokens' => env('GEMINI_CHAT_MAX_OUTPUT_TOKENS', 1024),
+        'itinerary_max_output_tokens' => env('GEMINI_ITINERARY_MAX_OUTPUT_TOKENS', 4096),
     ],
 
 ];

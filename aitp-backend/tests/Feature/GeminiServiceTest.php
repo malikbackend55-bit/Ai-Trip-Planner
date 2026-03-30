@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Services\GeminiService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Request;
 use Tests\TestCase;
 
 class GeminiServiceTest extends TestCase
@@ -41,5 +42,35 @@ class GeminiServiceTest extends TestCase
 
         $this->assertSame('Fallback model reply', $response);
         Http::assertSentCount(2);
+    }
+
+    public function test_chat_response_uses_configured_max_output_tokens(): void
+    {
+        config([
+            'services.gemini.api_key' => 'test-key',
+            'services.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+            'services.gemini.model' => 'gemini-2.5-flash',
+            'services.gemini.chat_max_output_tokens' => 8192,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent' => Http::response([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => 'Configured token reply',
+                        ]],
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $service = new GeminiService();
+        $response = $service->generateChatResponse('Plan me a trip', new User(['name' => 'Tester']));
+
+        $this->assertSame('Configured token reply', $response);
+        Http::assertSent(function (Request $request) {
+            return data_get($request->data(), 'generationConfig.maxOutputTokens') === 8192;
+        });
     }
 }

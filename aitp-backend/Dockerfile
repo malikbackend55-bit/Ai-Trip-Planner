@@ -54,7 +54,7 @@ ENV APP_DEBUG=false
 ENV PORT=8080
 
 # Expose the configured port
-EXPOSE 8080
+EXPOSE ${PORT:-8080}
 
 # Use the entrypoint script to run migrations and optimizations on startup
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
