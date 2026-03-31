@@ -10,15 +10,8 @@ class ApiService {
       return apiUrl;
     }
     
-    // Fallback for local development
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:8000/api';
-      }
-    } catch (_) {
-      // Platform check fails on Web
-    }
-    return 'http://localhost:8000/api';
+    // Deployment for Koyeb
+    return 'https://aitp-backend.koyeb.app/api';
   }
 
   ApiService() {

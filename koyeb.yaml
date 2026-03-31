@@ -1,0 +1,20 @@
+services:
+  - name: aitp-backend
+    type: web
+    image: ./aitp-backend
+    dockerfile: Dockerfile
+    ports:
+      - port: 8080
+        protocol: http
+    env:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: pgsql
+      # DB_HOST, DB_PASSWORD, etc. will be set in Koyeb UI (from Supabase)
+    health_check:
+      path: /up
+      interval: 30
+      timeout: 5
