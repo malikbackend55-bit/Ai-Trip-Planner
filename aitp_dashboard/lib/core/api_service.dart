@@ -12,23 +12,27 @@ class ApiService {
   }
 
   ApiService() {
-    dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ));
+    dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
 
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('auth_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        options.headers['Accept'] = 'application/json';
-        return handler.next(options);
-      },
-    ));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('auth_token');
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          options.headers['Accept'] = 'application/json';
+          return handler.next(options);
+        },
+      ),
+    );
   }
 
   Future<Response> login(String email, String password) async {
@@ -45,6 +49,14 @@ class ApiService {
 
   Future<Response> getTrips() async {
     return dio.get('/admin/trips');
+  }
+
+  Future<Response> createTrip(Map<String, dynamic> data) async {
+    return dio.post('/admin/trips', data: data);
+  }
+
+  Future<Response> updateTrip(int id, Map<String, dynamic> data) async {
+    return dio.put('/admin/trips/$id', data: data);
   }
 
   Future<Response> exportAdminData() async {
@@ -67,17 +79,18 @@ class ApiService {
     return dio.get('/user');
   }
 
-  Future<Response> createAdmin(String name, String email, String password) async {
-    return dio.post('/admin/users', data: {
-      'name': name,
-      'email': email,
-      'password': password,
-    });
+  Future<Response> createAdmin(
+    String name,
+    String email,
+    String password,
+  ) async {
+    return dio.post(
+      '/admin/users',
+      data: {'name': name, 'email': email, 'password': password},
+    );
   }
 
   Future<Response> updateUserRole(int id, String role) async {
-    return dio.put('/admin/users/$id/role', data: {
-      'role': role,
-    });
+    return dio.put('/admin/users/$id/role', data: {'role': role});
   }
 }

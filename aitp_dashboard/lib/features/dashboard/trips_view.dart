@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/dashboard_provider.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
+import '../../widgets/trip_form_dialog.dart';
 
 class TripsView extends ConsumerStatefulWidget {
   const TripsView({super.key});
@@ -65,7 +66,7 @@ class _TripsViewState extends ConsumerState<TripsView> {
               const SizedBox(width: 12),
             ],
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => _showTripDialog(context),
               icon: const Icon(Icons.add, size: 18),
               label: Text(isMobile ? 'Add' : 'Add New Trip'),
               style: ElevatedButton.styleFrom(
@@ -161,9 +162,9 @@ class _TripsViewState extends ConsumerState<TripsView> {
     required bool isMobile,
   }) {
     final trips = provider.filteredTrips;
-    final emptyMessage = provider.trips.isEmpty
-        ? 'No trips exist in the backend yet.'
-        : 'No trips match your filters.';
+    final emptyMessage = provider.hasTripEntries
+        ? 'No trips match your filters.'
+        : 'No trips exist in the backend yet.';
 
     if (provider.isLoading) {
       return Container(
@@ -197,6 +198,7 @@ class _TripsViewState extends ConsumerState<TripsView> {
                 child: _TripMobileCard(
                   trip: trip,
                   status: ref.read(dashboardProvider).displayTripStatus(trip),
+                  onEdit: () => _showTripDialog(context, trip: trip),
                   onDelete: () => _deleteTrip(context, ref, trip),
                 ),
               ),
@@ -294,7 +296,7 @@ class _TripsViewState extends ConsumerState<TripsView> {
                   size: 18,
                   color: AppColors.textDim,
                 ),
-                onPressed: () {},
+                onPressed: () => _showTripDialog(context, trip: trip),
               ),
               IconButton(
                 icon: const Icon(
@@ -309,6 +311,44 @@ class _TripsViewState extends ConsumerState<TripsView> {
         ),
       ],
     );
+  }
+
+  Future<void> _showTripDialog(BuildContext context, {dynamic trip}) async {
+    final isEdit = trip != null;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => TripFormDialog(
+        title: isEdit ? 'Edit Trip' : 'Create Trip',
+        submitLabel: isEdit ? 'Save Changes' : 'Create Trip',
+        destinationLabel: 'Destination',
+        destinationHint: 'Enter a destination',
+        budgetLabel: 'Budget',
+        defaultStatus: 'Upcoming',
+        statusOptions: const ['Upcoming', 'Completed', 'Cancelled'],
+        initialData: trip is Map<String, dynamic>
+            ? trip
+            : trip is Map
+            ? Map<String, dynamic>.from(trip)
+            : null,
+        onSubmit: (values) async {
+          if (isEdit) {
+            final id = int.tryParse(trip['id']?.toString() ?? '');
+            if (id == null) {
+              return 'Trip ID is missing.';
+            }
+            return ref.read(dashboardProvider).updateTrip(id, values);
+          }
+
+          return ref.read(dashboardProvider).createTrip(values);
+        },
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(content: Text(isEdit ? 'Trip updated' : 'Trip created')),
+      );
+    }
   }
 
   Future<void> _deleteTrip(
@@ -395,11 +435,13 @@ class _TripsViewState extends ConsumerState<TripsView> {
 class _TripMobileCard extends StatelessWidget {
   final dynamic trip;
   final String status;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _TripMobileCard({
     required this.trip,
     required this.status,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -449,7 +491,7 @@ class _TripMobileCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: onEdit,
                   child: const Text('Edit'),
                 ),
               ),
@@ -475,10 +517,7 @@ class _MetaLine extends StatelessWidget {
   final String label;
   final String value;
 
-  const _MetaLine({
-    required this.label,
-    required this.value,
-  });
+  const _MetaLine({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -498,10 +537,7 @@ class _MetaLine extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textMain,
-            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.textMain),
           ),
         ),
       ],

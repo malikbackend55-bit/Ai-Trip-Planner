@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/dashboard_provider.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
+import '../../widgets/trip_form_dialog.dart';
 
 class CatalogView extends ConsumerStatefulWidget {
   const CatalogView({super.key});
@@ -60,7 +61,7 @@ class _CatalogViewState extends ConsumerState<CatalogView>
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _showPackageDialog(),
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(isMobile ? 'Add' : 'Add Package'),
                 style: ElevatedButton.styleFrom(
@@ -97,8 +98,11 @@ class _CatalogViewState extends ConsumerState<CatalogView>
             onChanged: (value) =>
                 ref.read(dashboardProvider).setCatalogSearchQuery(value),
             decoration: const InputDecoration(
-              prefixIcon:
-                  Icon(Icons.search, color: AppColors.textDim, size: 20),
+              prefixIcon: Icon(
+                Icons.search,
+                color: AppColors.textDim,
+                size: 20,
+              ),
               hintText: 'Search catalog packages...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -150,8 +154,14 @@ class _CatalogViewState extends ConsumerState<CatalogView>
     );
   }
 
-  Widget _buildCatalogBody(DashboardProvider provider, {required bool isMobile}) {
+  Widget _buildCatalogBody(
+    DashboardProvider provider, {
+    required bool isMobile,
+  }) {
     final packages = provider.filteredCatalog;
+    final emptyMessage = provider.hasCatalogEntries
+        ? 'No packages match your filters.'
+        : 'No packages exist in the backend yet.';
 
     if (provider.isLoading) {
       return Container(
@@ -167,10 +177,10 @@ class _CatalogViewState extends ConsumerState<CatalogView>
         width: double.infinity,
         padding: const EdgeInsets.all(48),
         decoration: _bodyDecoration(),
-        child: const Center(
+        child: Center(
           child: Text(
-            'No packages match your filters.',
-            style: TextStyle(color: AppColors.textDim),
+            emptyMessage,
+            style: const TextStyle(color: AppColors.textDim),
           ),
         ),
       );
@@ -184,7 +194,8 @@ class _CatalogViewState extends ConsumerState<CatalogView>
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _CatalogMobileCard(
                   pkg: pkg,
-                  status: ref.read(dashboardProvider).displayTripStatus(pkg),
+                  status: ref.read(dashboardProvider).displayCatalogStatus(pkg),
+                  onEdit: () => _showPackageDialog(pkg: pkg),
                   onDelete: () => _deletePackage(pkg),
                 ),
               ),
@@ -234,7 +245,7 @@ class _CatalogViewState extends ConsumerState<CatalogView>
     final destination = pkg['destination'] ?? 'Unknown';
     final budget =
         '\$${(double.tryParse(pkg['budget']?.toString() ?? '0') ?? 0).toStringAsFixed(0)}';
-    final status = ref.read(dashboardProvider).displayTripStatus(pkg);
+    final status = ref.read(dashboardProvider).displayCatalogStatus(pkg);
     final date = pkg['start_date']?.toString().split('T').first ?? 'N/A';
 
     return DataRow(
@@ -287,7 +298,7 @@ class _CatalogViewState extends ConsumerState<CatalogView>
                   size: 18,
                   color: AppColors.textDim,
                 ),
-                onPressed: () {},
+                onPressed: () => _showPackageDialog(pkg: pkg),
               ),
               IconButton(
                 icon: const Icon(
@@ -295,7 +306,7 @@ class _CatalogViewState extends ConsumerState<CatalogView>
                   size: 18,
                   color: AppColors.textDim,
                 ),
-                onPressed: () {},
+                onPressed: () => _togglePackageVisibility(pkg),
               ),
               IconButton(
                 icon: const Icon(
@@ -309,6 +320,72 @@ class _CatalogViewState extends ConsumerState<CatalogView>
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showPackageDialog({dynamic pkg}) async {
+    final isEdit = pkg != null;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => TripFormDialog(
+        title: isEdit ? 'Edit Package' : 'Create Package',
+        submitLabel: isEdit ? 'Save Changes' : 'Create Package',
+        destinationLabel: 'Package Name',
+        destinationHint: 'Enter a destination or package name',
+        budgetLabel: 'Base Price',
+        defaultStatus: 'Active',
+        statusOptions: const ['Active', 'Featured', 'Hidden'],
+        initialData: pkg is Map<String, dynamic>
+            ? pkg
+            : pkg is Map
+            ? Map<String, dynamic>.from(pkg)
+            : null,
+        onSubmit: (values) async {
+          if (isEdit) {
+            final id = int.tryParse(pkg['id']?.toString() ?? '');
+            if (id == null) {
+              return 'Package ID is missing.';
+            }
+            return ref.read(dashboardProvider).updateTrip(id, values);
+          }
+
+          return ref.read(dashboardProvider).createTrip(values);
+        },
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEdit ? 'Package updated' : 'Package created')),
+      );
+    }
+  }
+
+  Future<void> _togglePackageVisibility(dynamic pkg) async {
+    final id = int.tryParse(pkg['id']?.toString() ?? '');
+    if (id == null) {
+      return;
+    }
+
+    final currentStatus = ref.read(dashboardProvider).displayCatalogStatus(pkg);
+    final nextStatus = currentStatus == 'Hidden' ? 'Active' : 'Hidden';
+    final error = await ref.read(dashboardProvider).updateTrip(id, {
+      'status': nextStatus,
+    });
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ??
+              (nextStatus == 'Hidden'
+                  ? 'Package hidden'
+                  : 'Package made active'),
+        ),
+      ),
     );
   }
 
@@ -342,8 +419,9 @@ class _CatalogViewState extends ConsumerState<CatalogView>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(success ? 'Package deleted' : 'Failed to delete package'),
+            content: Text(
+              success ? 'Package deleted' : 'Failed to delete package',
+            ),
           ),
         );
       }
@@ -392,11 +470,13 @@ class _CatalogViewState extends ConsumerState<CatalogView>
 class _CatalogMobileCard extends StatelessWidget {
   final dynamic pkg;
   final String status;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _CatalogMobileCard({
     required this.pkg,
     required this.status,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -449,7 +529,7 @@ class _CatalogMobileCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: onEdit,
                   child: const Text('Edit'),
                 ),
               ),
@@ -480,12 +560,15 @@ class _CatalogStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color;
     switch (status) {
-      case 'Upcoming':
+      case 'Featured':
+        color = AppColors.accent;
+        break;
+      case 'Active':
       case 'Completed':
         color = AppColors.success;
         break;
-      case 'Cancelled':
-        color = AppColors.error;
+      case 'Hidden':
+        color = AppColors.textDim;
         break;
       default:
         color = AppColors.textDim;

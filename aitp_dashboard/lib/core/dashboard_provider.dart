@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'api_service.dart';
 
 class DashboardProvider extends ChangeNotifier {
@@ -47,7 +48,9 @@ class DashboardProvider extends ChangeNotifier {
       return 'Completed';
     }
 
-    if (rawStatus == 'upcoming' || rawStatus == 'scheduled' || rawStatus == 'in progress') {
+    if (rawStatus == 'upcoming' ||
+        rawStatus == 'scheduled' ||
+        rawStatus == 'in progress') {
       return 'Upcoming';
     }
 
@@ -65,12 +68,59 @@ class DashboardProvider extends ChangeNotifier {
     return 'Upcoming';
   }
 
+  String displayCatalogStatus(dynamic trip) {
+    if (trip is! Map) {
+      return 'Active';
+    }
+
+    final tripMap = Map<String, dynamic>.from(trip);
+    final rawStatus = (tripMap['status'] ?? '').toString().trim().toLowerCase();
+
+    if (rawStatus == 'featured') {
+      return 'Featured';
+    }
+
+    if (rawStatus == 'hidden' ||
+        rawStatus == 'cancelled' ||
+        rawStatus == 'canceled') {
+      return 'Hidden';
+    }
+
+    if (rawStatus == 'completed' || rawStatus == 'past') {
+      return 'Completed';
+    }
+
+    if (rawStatus == 'active' ||
+        rawStatus == 'upcoming' ||
+        rawStatus == 'scheduled' ||
+        rawStatus == 'in progress') {
+      return 'Active';
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDate = DateTime.tryParse(tripMap['end_date']?.toString() ?? '');
+
+    if (endDate != null) {
+      final endDay = DateTime(endDate.year, endDate.month, endDate.day);
+      if (endDay.isBefore(today)) {
+        return 'Completed';
+      }
+    }
+
+    return 'Active';
+  }
+
   int get completedTripCount =>
       _trips.where((trip) => displayTripStatus(trip) == 'Completed').length;
 
+  bool get hasTripEntries => _trips.any((trip) => !_isCatalogEntry(trip));
+
+  bool get hasCatalogEntries => _trips.any(_isCatalogEntry);
+
   // Filtered getters
   List<dynamic> get filteredTrips {
-    var result = _trips;
+    var result = _trips.where((trip) => !_isCatalogEntry(trip)).toList();
 
     // Apply status filter
     if (_tripFilter != 'All Trips') {
@@ -82,8 +132,11 @@ class DashboardProvider extends ChangeNotifier {
     // Apply search
     if (_tripSearchQuery.isNotEmpty) {
       final q = _tripSearchQuery.toLowerCase();
-      result = result.where((t) =>
-          (t['destination'] ?? '').toString().toLowerCase().contains(q))
+      result = result
+          .where(
+            (t) =>
+                (t['destination'] ?? '').toString().toLowerCase().contains(q),
+          )
           .toList();
     }
     return result;
@@ -103,41 +156,52 @@ class DashboardProvider extends ChangeNotifier {
     // Apply search
     if (_userSearchQuery.isNotEmpty) {
       final q = _userSearchQuery.toLowerCase();
-      result = result.where((u) =>
-          (u['name'] ?? '').toString().toLowerCase().contains(q) ||
-          (u['email'] ?? '').toString().toLowerCase().contains(q))
+      result = result
+          .where(
+            (u) =>
+                (u['name'] ?? '').toString().toLowerCase().contains(q) ||
+                (u['email'] ?? '').toString().toLowerCase().contains(q),
+          )
           .toList();
     }
     return result;
   }
 
   List<dynamic> get filteredCatalog {
-    var result = _trips; // Catalog uses trips as source
+    var result = _trips.where(_isCatalogEntry).toList();
 
     // Apply filter
     if (_catalogFilter == 'Featured') {
-      result = result.where((t) =>
-          (double.tryParse(t['budget']?.toString() ?? '0') ?? 0) >= 2000).toList();
+      result = result
+          .where((t) => displayCatalogStatus(t) == 'Featured')
+          .toList();
     } else if (_catalogFilter == 'Hidden') {
-      result = result.where((t) => displayTripStatus(t) == 'Cancelled').toList();
+      result = result
+          .where((t) => displayCatalogStatus(t) == 'Hidden')
+          .toList();
     }
 
     // Apply search
     if (_catalogSearchQuery.isNotEmpty) {
       final q = _catalogSearchQuery.toLowerCase();
-      result = result.where((t) =>
-          (t['destination'] ?? '').toString().toLowerCase().contains(q))
+      result = result
+          .where(
+            (t) =>
+                (t['destination'] ?? '').toString().toLowerCase().contains(q),
+          )
           .toList();
     }
     return result;
   }
 
   // Computed user stats
-  int get premiumUserCount => _users.where((u) =>
-      (u['role'] ?? '').toString().toLowerCase() == 'premium').length;
+  int get premiumUserCount => _users
+      .where((u) => (u['role'] ?? '').toString().toLowerCase() == 'premium')
+      .length;
 
-  int get adminUserCount => _users.where((u) =>
-      (u['role'] ?? '').toString().toLowerCase() == 'admin').length;
+  int get adminUserCount => _users
+      .where((u) => (u['role'] ?? '').toString().toLowerCase() == 'admin')
+      .length;
 
   int get activeUserCount => _users.length; // All users count as active for now
 
@@ -194,18 +258,20 @@ class DashboardProvider extends ChangeNotifier {
       final statsRes = await _apiService.getAdminStats();
       final usersRes = await _apiService.getAdminUsers();
       final tripsRes = await _apiService.getTrips();
-      
+
       _stats = statsRes.data;
       _users = usersRes.data;
       _trips = tripsRes.data;
 
       try {
         final profileRes = await _apiService.getAdminProfile();
-        _adminProfile = profileRes.data is Map<String, dynamic> ? profileRes.data : {};
+        _adminProfile = profileRes.data is Map<String, dynamic>
+            ? profileRes.data
+            : {};
       } catch (_) {
         // Profile fetch failed, keep existing
       }
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -231,6 +297,42 @@ class DashboardProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<String?> createTrip(Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _apiService.createTrip(data);
+      await refresh();
+      return null;
+    } on DioException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return _extractErrorMessage(e);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return e.toString();
+    }
+  }
+
+  Future<String?> updateTrip(int id, Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _apiService.updateTrip(id, data);
+      await refresh();
+      return null;
+    } on DioException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return _extractErrorMessage(e);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return e.toString();
     }
   }
 
@@ -261,6 +363,44 @@ class DashboardProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  String _extractErrorMessage(DioException e) {
+    final data = e.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      final message = data['message']?.toString().trim();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+
+      final errors = data['errors'];
+      if (errors is Map<String, dynamic> && errors.isNotEmpty) {
+        for (final value in errors.values) {
+          if (value is List && value.isNotEmpty) {
+            final first = value.first?.toString().trim();
+            if (first != null && first.isNotEmpty) {
+              return first;
+            }
+          }
+        }
+      }
+    }
+
+    return 'Request failed. Please try again.';
+  }
+
+  bool _isCatalogEntry(dynamic trip) {
+    if (trip is! Map) {
+      return false;
+    }
+
+    final rawStatus = (trip['status'] ?? '').toString().trim().toLowerCase();
+    return rawStatus == 'active' ||
+        rawStatus == 'featured' ||
+        rawStatus == 'hidden';
+  }
 }
 
-final dashboardProvider = ChangeNotifierProvider<DashboardProvider>((ref) => DashboardProvider());
+final dashboardProvider = ChangeNotifierProvider<DashboardProvider>(
+  (ref) => DashboardProvider(),
+);

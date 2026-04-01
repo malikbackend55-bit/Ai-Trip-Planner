@@ -76,6 +76,48 @@ class AdminController extends Controller
         return response()->json($trips);
     }
 
+    public function createTrip(Request $request)
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'destination' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'budget' => 'nullable|numeric',
+            'status' => 'nullable|string|max:255',
+            'image_url' => 'nullable|string',
+        ]);
+
+        $trip = auth()->user()->trips()->create($validated);
+
+        return response()->json($trip->load('user'), 201);
+    }
+
+    public function updateTrip(Request $request, $id)
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $trip = Trip::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'destination' => 'sometimes|required|string|max:255',
+            'start_date' => 'sometimes|required|date',
+            'end_date' => 'sometimes|required|date',
+            'budget' => 'nullable|numeric',
+            'status' => 'sometimes|required|string|max:255',
+            'image_url' => 'nullable|string',
+        ]);
+
+        $trip->update($validated);
+
+        return response()->json($trip->fresh()->load('user'));
+    }
+
     public function export()
     {
         if (auth()->user()->role !== 'admin') {
