@@ -46,6 +46,7 @@ Cortex/
 analyze_out.txt
 package-lock.json
 composer.lock
+!/aitp-backend/composer.lock
 
 # Laravel Specific (Root level oversight)
 /aitp-backend/storage/*.key
