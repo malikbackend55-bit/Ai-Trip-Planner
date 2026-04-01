@@ -1,5 +1,6 @@
 # Stage 1: Build the Flutter Web App
-FROM instrumentisto/flutter:3.27 AS build
+# Match the local dashboard toolchain so `flutter pub get` satisfies `sdk: ^3.11.0`.
+FROM instrumentisto/flutter:3.41.2 AS build
 
 WORKDIR /app
 
