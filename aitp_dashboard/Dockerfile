@@ -9,9 +9,10 @@ RUN flutter pub get
 
 COPY . .
 
-# Build for Web - injecting the API_URL build argument
+# Build for Web - injecting the API_URL build argument.
+# Disable the Flutter service worker to avoid stale-cache white screens after redeploys.
 ARG API_URL
-RUN flutter build web --release --dart-define=API_URL=${API_URL}
+RUN flutter build web --release --pwa-strategy=none --dart-define=API_URL=${API_URL}
 
 # Stage 2: Serve the app using Nginx
 FROM nginx:alpine
