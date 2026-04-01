@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api_service.dart';
 import '../../core/dashboard_provider.dart';
+import '../../core/export_file.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 
@@ -15,10 +19,10 @@ class SettingsView extends ConsumerStatefulWidget {
 class _SettingsViewState extends ConsumerState<SettingsView>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
-  bool emailNotif = true;
-  bool pushNotif = true;
-  bool smsNotif = false;
+  final ApiService _apiService = ApiService();
   bool darkMode = false;
+  bool _isExporting = false;
+  bool _isResetting = false;
 
   @override
   void initState() {
@@ -87,8 +91,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
       children: [
         _buildProfileSection(profile),
         const SizedBox(height: 24),
-        _buildNotificationsSection(),
-        const SizedBox(height: 24),
         _buildDangerZone(),
       ],
     );
@@ -97,8 +99,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
   Widget _buildSecondaryColumn() {
     return Column(
       children: [
-        _buildSystemInfo(),
-        const SizedBox(height: 24),
         _buildAppearanceSection(),
       ],
     );
@@ -251,36 +251,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
     );
   }
 
-  Widget _buildNotificationsSection() {
-    return _buildCard(
-      'Notifications',
-      Column(
-        children: [
-          _buildToggle(
-            'Email Notifications',
-            'Receive trip updates via email',
-            emailNotif,
-            (value) => setState(() => emailNotif = value),
-          ),
-          const Divider(height: 24, color: AppColors.border),
-          _buildToggle(
-            'Push Notifications',
-            'Get real-time push alerts',
-            pushNotif,
-            (value) => setState(() => pushNotif = value),
-          ),
-          const Divider(height: 24, color: AppColors.border),
-          _buildToggle(
-            'SMS Alerts',
-            'Receive critical alerts via SMS',
-            smsNotif,
-            (value) => setState(() => smsNotif = value),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildToggle(
     String title,
     String subtitle,
@@ -315,91 +285,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
             (states) => states.contains(WidgetState.selected)
                 ? AppColors.primary
                 : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSystemInfo() {
-    final provider = ref.watch(dashboardProvider);
-    final totalUsers = provider.users.length;
-    final totalTrips = provider.trips.length;
-
-    return _buildCard(
-      'System Information',
-      Column(
-        children: [
-          _buildInfoRow('App Version', 'v1.0.0'),
-          const SizedBox(height: 10),
-          _buildInfoRow('Total Users', totalUsers.toString()),
-          const SizedBox(height: 10),
-          _buildInfoRow('Total Trips', totalTrips.toString()),
-          const SizedBox(height: 10),
-          _buildInfoRow('Platform', 'Web / Desktop'),
-          const SizedBox(height: 10),
-          _buildInfoRow('Timezone', 'UTC+3'),
-          const SizedBox(height: 16),
-          const Divider(color: AppColors.border),
-          const SizedBox(height: 12),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'API Key',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDim,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'sk-****-****-****-7f3a',
-                    style: TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.copy,
-                    size: 16,
-                    color: AppColors.textDim,
-                  ),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: AppColors.textDim),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
       ],
@@ -451,15 +336,133 @@ class _SettingsViewState extends ConsumerState<SettingsView>
     );
   }
 
+  Future<void> _handleExport() async {
+    if (_isExporting) {
+      return;
+    }
+
+    setState(() => _isExporting = true);
+
+    try {
+      final response = await _apiService.exportAdminData();
+      final exportData = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{'data': response.data};
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .replaceAll('.', '-');
+      final fileName = 'aitp-dashboard-export-$timestamp.json';
+      final content = const JsonEncoder.withIndent('  ').convert(exportData);
+      final result = await saveExportFile(fileName, content);
+
+      if (!mounted) {
+        return;
+      }
+
+      final message = result == 'Download started'
+          ? 'Export download started.'
+          : 'Export saved to $result';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Export failed. Try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _handleReset() async {
+    if (_isResetting) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset All Data'),
+        content: const Text(
+          'This will delete all trips and all non-admin users. Admin accounts will be kept. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _isResetting = true);
+
+    try {
+      final response = await _apiService.resetAdminData();
+      await ref.read(dashboardProvider).refresh();
+
+      if (!mounted) {
+        return;
+      }
+
+      final data = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final deletedUsers = data['deletedUsers']?.toString() ?? '0';
+      final deletedTrips = data['deletedTrips']?.toString() ?? '0';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Reset complete. Deleted $deletedTrips trips and $deletedUsers users.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reset failed. Try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isResetting = false);
+      }
+    }
+  }
+
   Widget _buildDangerZone() {
     final isMobile = AppBreakpoints.isMobile(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,38 +480,40 @@ class _SettingsViewState extends ConsumerState<SettingsView>
             title: 'Export All Data',
             subtitle: 'Download a copy of all system data',
             action: OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Export feature not implemented.'),
-                  ),
-                );
-              },
+              onPressed: _isExporting ? null : _handleExport,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.accent,
               ),
-              child: const Text('Export'),
+              child: _isExporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Export'),
             ),
             isMobile: isMobile,
           ),
           const SizedBox(height: 16),
           _buildDangerRow(
             title: 'Reset All Data',
-            subtitle: 'This action cannot be undone',
+            subtitle: 'Delete all trips and all non-admin users',
             action: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('Reset functionality disabled in demo mode.'),
-                  ),
-                );
-              },
+              onPressed: _isResetting ? null : _handleReset,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
                 minimumSize: const Size(100, 40),
               ),
-              child: const Text('Reset'),
+              child: _isResetting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Reset'),
             ),
             isMobile: isMobile,
           ),
@@ -550,13 +555,11 @@ class _SettingsViewState extends ConsumerState<SettingsView>
             children: [
               Text(
                 title,
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               Text(
                 subtitle,
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textDim),
+                style: const TextStyle(fontSize: 12, color: AppColors.textDim),
               ),
             ],
           ),

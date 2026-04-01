@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Trip;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminController extends Controller
 {
@@ -72,6 +74,78 @@ class AdminController extends Controller
 
         $trips = Trip::with('user')->orderBy('created_at', 'desc')->get();
         return response()->json($trips);
+    }
+
+    public function export()
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $users = User::orderBy('created_at', 'desc')->get();
+        $trips = Trip::with(['user', 'itineraries.activities', 'reviews'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $stats = [
+            'totalTrips' => Trip::count(),
+            'totalUsers' => User::count(),
+            'totalRevenue' => Trip::sum('budget'),
+        ];
+
+        return response()->json([
+            'exported_at' => now()->toIso8601String(),
+            'exported_by' => [
+                'id' => auth()->id(),
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+            ],
+            'stats' => $stats,
+            'users' => $users,
+            'trips' => $trips,
+        ]);
+    }
+
+    public function reset()
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $deletedTrips = 0;
+        $deletedUsers = 0;
+
+        DB::transaction(function () use (&$deletedTrips, &$deletedUsers) {
+            $deletedTrips = Trip::count();
+            Trip::query()->delete();
+
+            $userIds = User::query()
+                ->where(function ($query) {
+                    $query->where('role', '!=', 'admin')
+                        ->orWhereNull('role');
+                })
+                ->pluck('id');
+
+            if ($userIds->isEmpty()) {
+                $deletedUsers = 0;
+                return;
+            }
+
+            PersonalAccessToken::query()
+                ->where('tokenable_type', User::class)
+                ->whereIn('tokenable_id', $userIds)
+                ->delete();
+
+            $deletedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->delete();
+        });
+
+        return response()->json([
+            'message' => 'System data reset successfully.',
+            'deletedTrips' => $deletedTrips,
+            'deletedUsers' => $deletedUsers,
+        ]);
     }
 
     public function deleteUser($id)

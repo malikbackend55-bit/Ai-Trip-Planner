@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/stats', [AdminController::class, 'stats']);
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::get('/admin/trips', [AdminController::class, 'trips']);
+    Route::get('/admin/export', [AdminController::class, 'export']);
+    Route::post('/admin/reset', [AdminController::class, 'reset']);
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
     Route::post('/admin/users', [AdminController::class, 'createAdmin']);
     Route::put('/admin/users/{id}/role', [AdminController::class, 'updateRole']);

@@ -47,6 +47,14 @@ class ApiService {
     return dio.get('/admin/trips');
   }
 
+  Future<Response> exportAdminData() async {
+    return dio.get('/admin/export');
+  }
+
+  Future<Response> resetAdminData() async {
+    return dio.post('/admin/reset');
+  }
+
   Future<Response> deleteUser(int id) async {
     return dio.delete('/admin/users/$id');
   }
