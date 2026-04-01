@@ -90,10 +90,10 @@ class _OverviewViewState extends ConsumerState<OverviewView> with SingleTickerPr
 
   Widget _buildStatsGrid(DashboardProvider provider) {
     final stats = provider.stats;
-    final totalTrips = stats['totalTrips']?.toString() ?? '0';
+    final totalTrips = provider.trips.length.toString();
     final totalUsers = stats['totalUsers']?.toString() ?? '0';
     final totalRevenue = '\$${(double.tryParse(stats['totalRevenue']?.toString() ?? '0') ?? 0).toStringAsFixed(0)}';
-    final completedTrips = stats['completedTrips']?.toString() ?? '0';
+    final completedTrips = provider.completedTripCount.toString();
 
     return GridView.count(
       crossAxisCount: 4,

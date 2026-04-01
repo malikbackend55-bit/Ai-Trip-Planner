@@ -222,11 +222,12 @@ class _AnalyticsViewState extends ConsumerState<AnalyticsView> with SingleTicker
   }
 
   Widget _buildConversionFunnel(Map<String, dynamic> stats) {
-    final totalTrips = stats['totalTrips'] ?? 100;
+    final provider = ref.read(dashboardProvider);
+    final totalTrips = provider.trips.length;
     final stages = [
       ('Website Visits', '45,200', 1.0),
       ('Trip Created', totalTrips.toString(), 0.20),
-      ('Booking Completed', stats['completedTrips']?.toString() ?? '0', 0.11),
+      ('Booking Completed', provider.completedTripCount.toString(), 0.11),
     ];
 
     return Container(

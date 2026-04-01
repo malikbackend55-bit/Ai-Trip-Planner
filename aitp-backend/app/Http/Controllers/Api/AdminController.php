@@ -26,6 +26,8 @@ class AdminController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        $today = now()->toDateString();
+
         // Monthly trends (Last 6 months)
         $monthlyTrends = Trip::selectRaw("TO_CHAR(created_at, 'Mon') as month, COUNT(*) as count")
             ->where('created_at', '>=', now()->subMonths(6))
@@ -40,11 +42,21 @@ class AdminController extends Controller
             ->limit(5)
             ->get();
 
+        $completedTrips = Trip::where(function ($query) use ($today) {
+            $query->whereIn('status', ['Completed', 'Past'])
+                ->orWhere(function ($subQuery) use ($today) {
+                    $subQuery->where(function ($statusQuery) {
+                        $statusQuery->whereNull('status')
+                            ->orWhereNotIn('status', ['Cancelled']);
+                    })->whereDate('end_date', '<', $today);
+                });
+        })->count();
+
         return response()->json([
             'totalTrips' => Trip::count(),
             'totalUsers' => User::count(),
             'totalRevenue' => Trip::sum('budget'),
-            'completedTrips' => Trip::where('status', 'Completed')->count(),
+            'completedTrips' => $completedTrips,
             'monthlyTrends' => $monthlyTrends,
             'topDestinations' => $topDestinations,
             'userRetention' => 84, // Simplified mock for now

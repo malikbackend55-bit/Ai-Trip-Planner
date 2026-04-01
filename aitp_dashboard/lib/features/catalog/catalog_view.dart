@@ -154,7 +154,7 @@ class _CatalogViewState extends ConsumerState<CatalogView> with SingleTickerProv
   DataRow _buildPackageRow(dynamic pkg) {
     final destination = pkg['destination'] ?? 'Unknown';
     final budget = '\$${(double.tryParse(pkg['budget']?.toString() ?? '0') ?? 0).toStringAsFixed(0)}';
-    final status = pkg['status'] ?? 'Active';
+    final status = ref.read(dashboardProvider).displayTripStatus(pkg);
     final date = pkg['start_date']?.toString().split('T').first ?? 'N/A';
 
     return DataRow(cells: [
@@ -219,6 +219,7 @@ class _CatalogViewState extends ConsumerState<CatalogView> with SingleTickerProv
         color = AppColors.accent;
         break;
       case 'Active':
+      case 'Upcoming':
       case 'Scheduled':
       case 'Completed':
         color = AppColors.success;

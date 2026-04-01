@@ -31,6 +31,43 @@ class DashboardProvider extends ChangeNotifier {
   String get userSearchQuery => _userSearchQuery;
   String get catalogSearchQuery => _catalogSearchQuery;
 
+  String displayTripStatus(dynamic trip) {
+    if (trip is! Map) {
+      return 'Upcoming';
+    }
+
+    final tripMap = Map<String, dynamic>.from(trip);
+    final rawStatus = (tripMap['status'] ?? '').toString().trim().toLowerCase();
+
+    if (rawStatus == 'cancelled' || rawStatus == 'canceled') {
+      return 'Cancelled';
+    }
+
+    if (rawStatus == 'completed' || rawStatus == 'past') {
+      return 'Completed';
+    }
+
+    if (rawStatus == 'upcoming' || rawStatus == 'scheduled' || rawStatus == 'in progress') {
+      return 'Upcoming';
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDate = DateTime.tryParse(tripMap['end_date']?.toString() ?? '');
+
+    if (endDate != null) {
+      final endDay = DateTime(endDate.year, endDate.month, endDate.day);
+      if (endDay.isBefore(today)) {
+        return 'Completed';
+      }
+    }
+
+    return 'Upcoming';
+  }
+
+  int get completedTripCount =>
+      _trips.where((trip) => displayTripStatus(trip) == 'Completed').length;
+
   // Filtered getters
   List<dynamic> get filteredTrips {
     var result = _trips;
@@ -38,17 +75,7 @@ class DashboardProvider extends ChangeNotifier {
     // Apply status filter
     if (_tripFilter != 'All Trips') {
       result = result.where((t) {
-        final status = (t['status'] ?? '').toString();
-        switch (_tripFilter) {
-          case 'Upcoming':
-            return status == 'Scheduled' || status == 'In Progress';
-          case 'Completed':
-            return status == 'Completed';
-          case 'Cancelled':
-            return status == 'Cancelled';
-          default:
-            return true;
-        }
+        return displayTripStatus(t) == _tripFilter;
       }).toList();
     }
 
@@ -92,8 +119,7 @@ class DashboardProvider extends ChangeNotifier {
       result = result.where((t) =>
           (double.tryParse(t['budget']?.toString() ?? '0') ?? 0) >= 2000).toList();
     } else if (_catalogFilter == 'Hidden') {
-      result = result.where((t) =>
-          (t['status'] ?? '').toString() == 'Cancelled').toList();
+      result = result.where((t) => displayTripStatus(t) == 'Cancelled').toList();
     }
 
     // Apply search

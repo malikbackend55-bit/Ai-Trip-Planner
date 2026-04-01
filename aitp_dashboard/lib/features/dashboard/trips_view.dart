@@ -103,6 +103,9 @@ class _TripsViewState extends ConsumerState<TripsView> {
 
   Widget _buildTripsTable(BuildContext context, WidgetRef ref, DashboardProvider provider) {
     final trips = provider.filteredTrips;
+    final emptyMessage = provider.trips.isEmpty
+        ? 'No trips exist in the backend yet.'
+        : 'No trips match your filters.';
 
     return Container(
       width: double.infinity,
@@ -117,9 +120,9 @@ class _TripsViewState extends ConsumerState<TripsView> {
             child: Center(child: CircularProgressIndicator()),
           )
         : trips.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.all(48.0),
-              child: Center(child: Text('No trips match your filters.', style: TextStyle(color: AppColors.textDim))),
+          ? Padding(
+              padding: const EdgeInsets.all(48.0),
+              child: Center(child: Text(emptyMessage, style: const TextStyle(color: AppColors.textDim))),
             )
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -146,8 +149,10 @@ class _TripsViewState extends ConsumerState<TripsView> {
   DataRow _buildTripRow(BuildContext context, WidgetRef ref, dynamic trip) {
     final destination = trip['destination'] ?? 'Unknown';
     final budget = '\$${(double.tryParse(trip['budget']?.toString() ?? '0') ?? 0).toStringAsFixed(0)}';
-    final status = trip['status'] ?? 'Scheduled';
-    final date = trip['start_date']?.toString().split('T').first ?? 'N/A';
+    final status = ref.read(dashboardProvider).displayTripStatus(trip);
+    final startDate = trip['start_date']?.toString().split('T').first ?? 'N/A';
+    final endDate = trip['end_date']?.toString().split('T').first ?? '';
+    final date = endDate.isEmpty ? startDate : '$startDate -> $endDate';
 
     return DataRow(
       cells: [
@@ -203,11 +208,23 @@ class _TripsViewState extends ConsumerState<TripsView> {
   Widget _buildStatusBadge(String status) {
     Color color;
     switch (status) {
-      case 'Completed': color = AppColors.success; break;
-      case 'In Progress': color = AppColors.secondary; break;
-      case 'Scheduled': color = Colors.blue; break;
-      case 'Cancelled': color = AppColors.error; break;
-      default: color = AppColors.textDim;
+      case 'Upcoming':
+        color = Colors.blue;
+        break;
+      case 'Completed':
+        color = AppColors.success;
+        break;
+      case 'In Progress':
+        color = AppColors.secondary;
+        break;
+      case 'Scheduled':
+        color = Colors.blue;
+        break;
+      case 'Cancelled':
+        color = AppColors.error;
+        break;
+      default:
+        color = AppColors.textDim;
     }
 
     return Container(
