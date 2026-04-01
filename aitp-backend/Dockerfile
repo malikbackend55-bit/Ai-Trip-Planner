@@ -52,6 +52,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 ENV PORT=8080
+ENV SERVER_NAME=:8080
 
 # Expose the configured port
 EXPOSE ${PORT:-8080}
@@ -60,6 +61,6 @@ EXPOSE ${PORT:-8080}
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Entrypoint handles setup, CMD starts the server
+# Entrypoint handles setup, CMD starts FrankenPHP on the app's public dir
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["frankenphp", "php-server", "--port", "8080"]
+CMD ["frankenphp", "php-server", "-r", "public/", "--listen=:8080"]
