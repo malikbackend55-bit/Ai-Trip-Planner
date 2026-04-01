@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/auth_session.dart';
 import '../../core/api_service.dart';
 import '../../core/dashboard_provider.dart';
 import '../../core/theme.dart';
@@ -52,14 +53,18 @@ class _LoginViewState extends State<LoginView> {
 
         try {
           final profileResponse = await _apiService.getAdminProfile();
-            final role = profileResponse.data['role']?.toString().toLowerCase();
+          final role = profileResponse.data['role']?.toString().toLowerCase();
 
           if (role != 'admin') {
             await prefs.remove('auth_token');
-            setState(() => _errorMessage = 'This dashboard requires an admin account.');
+            authSession.markLoggedOut();
+            setState(
+              () => _errorMessage = 'This dashboard requires an admin account.',
+            );
             return;
           }
 
+          authSession.markAuthenticated();
           await container.read(dashboardProvider).refresh();
 
           if (mounted) {
@@ -67,13 +72,19 @@ class _LoginViewState extends State<LoginView> {
           }
         } catch (_) {
           await prefs.remove('auth_token');
-          setState(() => _errorMessage = 'Could not verify admin access. Check the dashboard API URL.');
+          authSession.markLoggedOut();
+          setState(
+            () => _errorMessage =
+                'Could not verify admin access. Check the dashboard API URL.',
+          );
         }
       } else {
         setState(() => _errorMessage = 'Invalid response from server.');
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Login failed. Please check your credentials.');
+      setState(
+        () => _errorMessage = 'Login failed. Please check your credentials.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -120,7 +131,11 @@ class _LoginViewState extends State<LoginView> {
                 const Text(
                   'AITP Admin',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -136,22 +151,45 @@ class _LoginViewState extends State<LoginView> {
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                _buildTextField('Email Address', _emailController, Icons.email_outlined, false),
+                _buildTextField(
+                  'Email Address',
+                  _emailController,
+                  Icons.email_outlined,
+                  false,
+                ),
                 const SizedBox(height: 20),
-                _buildTextField('Password', _passwordController, Icons.lock_outline, true),
+                _buildTextField(
+                  'Password',
+                  _passwordController,
+                  Icons.lock_outline,
+                  true,
+                ),
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {},
-                    child: const Text('Forgot Password?', style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -160,12 +198,28 @@ class _LoginViewState extends State<LoginView> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -175,11 +229,23 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, bool obscure) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+    bool obscure,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMain)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMain,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -187,10 +253,22 @@ class _LoginViewState extends State<LoginView> {
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: AppColors.textDim, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
           ),
         ),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/auth_session.dart';
 import 'core/theme.dart';
 import 'core/dashboard_provider.dart';
 import 'widgets/dashboard_layout.dart';
@@ -14,11 +15,7 @@ import 'features/settings/settings_view.dart';
 import 'features/auth/login_view.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: AitpDashboardApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: AitpDashboardApp()));
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -40,6 +37,7 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
     _router = GoRouter(
       initialLocation: '/overview',
       navigatorKey: _rootNavigatorKey,
+      refreshListenable: authSession,
       redirect: (context, state) async {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
@@ -54,10 +52,7 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
         return null;
       },
       routes: [
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginView(),
-        ),
+        GoRoute(path: '/login', builder: (context, state) => const LoginView()),
         ShellRoute(
           navigatorKey: _shellNavigatorKey,
           builder: (context, state, child) {
@@ -86,8 +81,11 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
             }
 
             final provider = ref.watch(dashboardProvider);
-            final adminName = provider.adminProfile['name']?.toString() ?? 'Admin User';
-            final adminRole = (provider.adminProfile['role']?.toString() ?? 'admin').toUpperCase();
+            final adminName =
+                provider.adminProfile['name']?.toString() ?? 'Admin User';
+            final adminRole =
+                (provider.adminProfile['role']?.toString() ?? 'admin')
+                    .toUpperCase();
 
             return DashboardLayout(
               adminName: adminName,

@@ -1,14 +1,48 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth_session.dart';
+
 class ApiService {
   late Dio dio;
-  static String get baseUrl {
+  static const String _coolifyDomain =
+      'owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io';
+  static const String _coolifyDomainApiUrl = 'http://$_coolifyDomain/api';
+  static const String _coolifyIpApiUrl = 'http://45.32.155.226/api';
+
+  static String get _configuredBaseUrl {
     const String apiUrl = String.fromEnvironment('API_URL');
     if (apiUrl.isNotEmpty) {
       return apiUrl;
     }
-    return 'http://owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io/api';
+
+    return _coolifyDomainApiUrl;
+  }
+
+  static bool get _useAndroidHostHeaderWorkaround {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return false;
+    }
+
+    final uri = Uri.tryParse(_configuredBaseUrl);
+    return uri != null && uri.scheme == 'http' && uri.host == _coolifyDomain;
+  }
+
+  static String get baseUrl {
+    if (_useAndroidHostHeaderWorkaround) {
+      return _coolifyIpApiUrl;
+    }
+
+    return _configuredBaseUrl;
+  }
+
+  static String? get hostHeader {
+    if (_useAndroidHostHeaderWorkaround) {
+      return _coolifyDomain;
+    }
+
+    return null;
   }
 
   ApiService() {
@@ -29,7 +63,20 @@ class ApiService {
             options.headers['Authorization'] = 'Bearer $token';
           }
           options.headers['Accept'] = 'application/json';
+          final host = hostHeader;
+          if (host != null) {
+            options.headers['Host'] = host;
+          }
           return handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('auth_token');
+            authSession.markSessionExpired();
+          }
+
+          return handler.next(error);
         },
       ),
     );

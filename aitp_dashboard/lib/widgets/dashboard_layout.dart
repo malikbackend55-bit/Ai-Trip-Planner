@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/auth_session.dart';
 import '../core/dashboard_provider.dart';
 import '../core/responsive.dart';
 import '../core/theme.dart';
@@ -46,10 +47,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               width: 290,
               shape: const RoundedRectangleBorder(),
               child: SafeArea(
-                child: _buildSidebarContent(
-                  collapsed: false,
-                  isDrawer: true,
-                ),
+                child: _buildSidebarContent(collapsed: false, isDrawer: true),
               ),
             )
           : null,
@@ -63,10 +61,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             Expanded(
               child: Column(
                 children: [
-                  _buildTopBar(
-                    isMobile: isMobile,
-                    isTablet: isTablet,
-                  ),
+                  _buildTopBar(isMobile: isMobile, isTablet: isTablet),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: contentPadding,
@@ -88,10 +83,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       width: width,
-      child: _buildSidebarContent(
-        collapsed: collapsed,
-        isDrawer: false,
-      ),
+      child: _buildSidebarContent(collapsed: collapsed, isDrawer: false),
     );
   }
 
@@ -110,12 +102,48 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                _buildSidebarItem(0, Icons.dashboard_outlined, 'Overview', collapsed, isDrawer),
-                _buildSidebarItem(1, Icons.flight_takeoff_outlined, 'Trips', collapsed, isDrawer),
-                _buildSidebarItem(2, Icons.group_outlined, 'Users', collapsed, isDrawer),
-                _buildSidebarItem(3, Icons.inventory_2_outlined, 'Catalog', collapsed, isDrawer),
-                _buildSidebarItem(4, Icons.query_stats_outlined, 'Analytics', collapsed, isDrawer),
-                _buildSidebarItem(5, Icons.settings_outlined, 'Settings', collapsed, isDrawer),
+                _buildSidebarItem(
+                  0,
+                  Icons.dashboard_outlined,
+                  'Overview',
+                  collapsed,
+                  isDrawer,
+                ),
+                _buildSidebarItem(
+                  1,
+                  Icons.flight_takeoff_outlined,
+                  'Trips',
+                  collapsed,
+                  isDrawer,
+                ),
+                _buildSidebarItem(
+                  2,
+                  Icons.group_outlined,
+                  'Users',
+                  collapsed,
+                  isDrawer,
+                ),
+                _buildSidebarItem(
+                  3,
+                  Icons.inventory_2_outlined,
+                  'Catalog',
+                  collapsed,
+                  isDrawer,
+                ),
+                _buildSidebarItem(
+                  4,
+                  Icons.query_stats_outlined,
+                  'Analytics',
+                  collapsed,
+                  isDrawer,
+                ),
+                _buildSidebarItem(
+                  5,
+                  Icons.settings_outlined,
+                  'Settings',
+                  collapsed,
+                  isDrawer,
+                ),
               ],
             ),
           ),
@@ -130,8 +158,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: collapsed ? 12 : 20),
       child: Row(
-        mainAxisAlignment:
-            collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: collapsed
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           Container(
             width: 48,
@@ -140,11 +169,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               color: AppColors.secondary,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.public,
-              color: Colors.white,
-              size: 24,
-            ),
+            child: const Icon(Icons.public, color: Colors.white, size: 24),
           ),
           if (!collapsed) ...[
             const SizedBox(width: 14),
@@ -195,8 +220,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
-          mainAxisAlignment:
-              collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+          mainAxisAlignment: collapsed
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
           children: [
             Icon(
               icon,
@@ -223,10 +249,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     );
   }
 
-  Widget _buildTopBar({
-    required bool isMobile,
-    required bool isTablet,
-  }) {
+  Widget _buildTopBar({required bool isMobile, required bool isTablet}) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : 24,
@@ -271,9 +294,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 Flexible(
                   flex: isTablet ? 2 : 0,
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: isTablet ? 320 : 360,
-                    ),
+                    constraints: BoxConstraints(maxWidth: isTablet ? 320 : 360),
                     child: _buildSearchBar(compact: false),
                   ),
                 ),
@@ -309,10 +330,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               decoration: InputDecoration(
                 hintText: 'Search trips, users...',
                 border: InputBorder.none,
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textDim,
-                ),
+                hintStyle: TextStyle(fontSize: 14, color: AppColors.textDim),
               ),
             ),
           ),
@@ -339,10 +357,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               ),
               Text(
                 widget.adminRole,
-                style: const TextStyle(
-                  color: AppColors.textDim,
-                  fontSize: 11,
-                ),
+                style: const TextStyle(color: AppColors.textDim, fontSize: 11),
               ),
             ],
           ),
@@ -382,11 +397,14 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final container =
-                      ProviderScope.containerOf(context, listen: false);
+                  final container = ProviderScope.containerOf(
+                    context,
+                    listen: false,
+                  );
                   Navigator.of(ctx).pop();
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.remove('auth_token');
+                  authSession.markLoggedOut();
                   container.read(dashboardProvider).clearSession();
                   if (mounted) {
                     context.go('/login');
@@ -405,18 +423,13 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           vertical: 13,
           horizontal: collapsed ? 0 : 16,
         ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
         child: Row(
-          mainAxisAlignment:
-              collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+          mainAxisAlignment: collapsed
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.logout_rounded,
-              size: 22,
-              color: Colors.white70,
-            ),
+            const Icon(Icons.logout_rounded, size: 22, color: Colors.white70),
             if (!collapsed) ...[
               const SizedBox(width: 14),
               const Text(

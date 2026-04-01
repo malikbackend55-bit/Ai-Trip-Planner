@@ -365,6 +365,10 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   String _extractErrorMessage(DioException e) {
+    if (e.response?.statusCode == 401) {
+      return 'Session expired. Please sign in again.';
+    }
+
     final data = e.response?.data;
 
     if (data is Map<String, dynamic>) {
