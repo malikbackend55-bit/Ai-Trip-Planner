@@ -46,6 +46,26 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> updateTrip(int id, Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _apiService.updateTrip(id, data);
+      await fetchTrips();
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    } on DioException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return _extractErrorMessage(e);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return e.toString();
+    }
+  }
+
   Future<bool> deleteTrip(int id) async {
     try {
       await _apiService.deleteTrip(id);

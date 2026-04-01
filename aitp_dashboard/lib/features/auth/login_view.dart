@@ -46,8 +46,23 @@ class _LoginViewState extends State<LoginView> {
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
-        if (mounted) {
-          context.go('/overview');
+
+        try {
+          final profileResponse = await _apiService.getAdminProfile();
+          final role = profileResponse.data['role']?.toString().toLowerCase();
+
+          if (role != 'admin') {
+            await prefs.remove('auth_token');
+            setState(() => _errorMessage = 'This dashboard requires an admin account.');
+            return;
+          }
+
+          if (mounted) {
+            context.go('/overview');
+          }
+        } catch (_) {
+          await prefs.remove('auth_token');
+          setState(() => _errorMessage = 'Could not verify admin access. Check the dashboard API URL.');
         }
       } else {
         setState(() => _errorMessage = 'Invalid response from server.');

@@ -8,7 +8,7 @@ class ApiService {
     if (apiUrl.isNotEmpty) {
       return apiUrl;
     }
-    return 'http://localhost:8000/api';
+    return 'http://owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io/api';
   }
 
   ApiService() {

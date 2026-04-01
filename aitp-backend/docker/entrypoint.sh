@@ -11,6 +11,10 @@ fi
 echo "Running migrations..."
 php artisan migrate --force
 
+# Seed the database (creates the default admin user)
+echo "Running seeders..."
+php artisan db:seed --class=AdminUserSeeder --force
+
 # Optimize for production
 echo "Caching configuration and routes..."
 php artisan config:cache

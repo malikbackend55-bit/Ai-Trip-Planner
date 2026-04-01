@@ -116,7 +116,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: () {},
+            onPressed: () => context.push('/forgot-password', extra: _emailController.text.trim()),
             child: const Text('Forgot Password?', style: TextStyle(color: AppColors.g700, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ),

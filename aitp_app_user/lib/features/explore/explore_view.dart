@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/explore_provider.dart';
 
@@ -67,6 +68,9 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
                             emoji: d.emoji,
                             rating: d.rating,
                             color: d.color,
+                            onTap: () => context.push('/create-trip', extra: {
+                              'destination': d.name,
+                            }),
                           )),
                           const SizedBox(height: 80),
                         ].animate(interval: 100.ms).fade(duration: 400.ms).slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutQuart),
@@ -183,56 +187,68 @@ class _ExploreCard extends StatelessWidget {
   final String emoji;
   final String rating;
   final Color color;
-  const _ExploreCard({required this.name, required this.sub, required this.price, required this.emoji, required this.rating, required this.color});
+  final VoidCallback onTap;
+  const _ExploreCard({
+    required this.name,
+    required this.sub,
+    required this.price,
+    required this.emoji,
+    required this.rating,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.gray100),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            color: color.withValues(alpha: 0.15),
-            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 32))),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-                  Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.gray400)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: AppColors.coral, size: 14),
-                          const SizedBox(width: 4),
-                          Text(rating, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.coral)),
-                        ],
-                      ),
-                      Text('from $price', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.g700)),
-                    ],
-                  ),
-                ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.gray100),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              color: color.withValues(alpha: 0.15),
+              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 32))),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.gray400)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: AppColors.coral, size: 14),
+                            const SizedBox(width: 4),
+                            Text(rating, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.coral)),
+                          ],
+                        ),
+                        Text('from $price', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.g700)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

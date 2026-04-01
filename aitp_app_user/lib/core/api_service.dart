@@ -1,17 +1,45 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   late Dio dio;
-  static String get baseUrl {
+  static const String _coolifyDomain = 'owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io';
+  static const String _coolifyDomainApiUrl = 'http://$_coolifyDomain/api';
+  static const String _coolifyIpApiUrl = 'http://45.32.155.226/api';
+
+  static String get _configuredBaseUrl {
     const String apiUrl = String.fromEnvironment('API_URL');
     if (apiUrl.isNotEmpty) {
       return apiUrl;
     }
-    
-    // Deployment for Koyeb
-    return 'https://aitp-backend.koyeb.app/api';
+
+    return _coolifyDomainApiUrl;
+  }
+
+  static bool get _useAndroidHostHeaderWorkaround {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return false;
+    }
+
+    final uri = Uri.tryParse(_configuredBaseUrl);
+    return uri != null && uri.scheme == 'http' && uri.host == _coolifyDomain;
+  }
+
+  static String get baseUrl {
+    if (_useAndroidHostHeaderWorkaround) {
+      return _coolifyIpApiUrl;
+    }
+
+    return _configuredBaseUrl;
+  }
+
+  static String? get hostHeader {
+    if (_useAndroidHostHeaderWorkaround) {
+      return _coolifyDomain;
+    }
+
+    return null;
   }
 
   ApiService() {
@@ -29,6 +57,10 @@ class ApiService {
           options.headers['Authorization'] = 'Bearer $token';
         }
         options.headers['Accept'] = 'application/json';
+        final host = hostHeader;
+        if (host != null) {
+          options.headers['Host'] = host;
+        }
         return handler.next(options);
       },
       onError: (DioException e, handler) {
@@ -58,6 +90,15 @@ class ApiService {
     });
   }
 
+  Future<Response> forgotPassword(String email, String phone, String password, String passwordConfirmation) async {
+    return dio.post('/forgot-password', data: {
+      'email': email,
+      'phone': phone,
+      'password': password,
+      'password_confirmation': passwordConfirmation,
+    });
+  }
+
   // Trip Methods
   Future<Response> getTrips() async {
     return dio.get('/trips');
@@ -65,6 +106,10 @@ class ApiService {
 
   Future<Response> createTrip(Map<String, dynamic> data) async {
     return dio.post('/trips', data: data);
+  }
+
+  Future<Response> updateTrip(int id, Map<String, dynamic> data) async {
+    return dio.put('/trips/$id', data: data);
   }
 
   Future<Response> generateTrip(Map<String, dynamic> data) async {

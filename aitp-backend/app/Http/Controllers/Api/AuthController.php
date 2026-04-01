@@ -57,6 +57,35 @@ class AuthController extends Controller
         ]);
     }
 
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+            'phone' => 'required|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->where('phone', $request->phone)
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No account matches that email and phone number.',
+            ], 404);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Password reset successful. You can log in now.',
+        ]);
+    }
+
     public function user(Request $request)
     {
         return response()->json($request->user());

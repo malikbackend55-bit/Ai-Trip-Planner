@@ -160,6 +160,7 @@ class _MyTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tripData = Map<String, dynamic>.from(trip as Map);
     final name = trip['destination'] ?? 'Unknown';
     final startDate = trip['start_date']?.toString().split('T').first ?? '';
     final budget = '\$${(double.tryParse(trip['budget']?.toString() ?? '0') ?? 0).toStringAsFixed(0)}';
@@ -244,14 +245,20 @@ class _MyTripCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => context.push('/itinerary', extra: trip),
+                        onTap: () => context.push('/itinerary', extra: tripData),
                         child: const _BtnSm(label: '👁️ View', isPrimary: true),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const _BtnSm(label: '✏️ Edit'),
+                    GestureDetector(
+                      onTap: () => context.push('/create-trip', extra: tripData),
+                      child: const _BtnSm(label: '✏️ Edit'),
+                    ),
                     const SizedBox(width: 8),
-                    const _BtnSm(label: '🤖 AI'),
+                    GestureDetector(
+                      onTap: () => context.push('/chat', extra: tripData),
+                      child: const _BtnSm(label: '🤖 AI'),
+                    ),
                   ],
                 )
               ],

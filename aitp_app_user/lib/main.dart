@@ -7,6 +7,7 @@ import 'features/auth/splash_view.dart';
 import 'features/main_navigation.dart';
 import 'features/auth/login_view.dart';
 import 'features/auth/register_view.dart';
+import 'features/auth/forgot_password_view.dart';
 import 'features/trips/create_trip_form.dart';
 import 'features/itinerary/itinerary_view.dart';
 import 'features/chat/chat_view.dart';
@@ -48,6 +49,14 @@ class _MyAppState extends State<MyApp> {
           builder: (context, state) => const RegisterView(),
         ),
         GoRoute(
+          path: '/forgot-password',
+          builder: (context, state) {
+            final extra = state.extra;
+            final initialEmail = extra is String ? extra : null;
+            return ForgotPasswordView(initialEmail: initialEmail);
+          },
+        ),
+        GoRoute(
           path: '/home',
           builder: (context, state) {
             final tabIndex = state.extra as int? ?? 0;
@@ -56,7 +65,11 @@ class _MyAppState extends State<MyApp> {
         ),
         GoRoute(
           path: '/create-trip',
-          builder: (context, state) => const CreateTripForm(),
+          builder: (context, state) {
+            final extra = state.extra;
+            final trip = extra is Map ? Map<String, dynamic>.from(extra) : null;
+            return CreateTripForm(trip: trip);
+          },
         ),
         GoRoute(
           path: '/itinerary',

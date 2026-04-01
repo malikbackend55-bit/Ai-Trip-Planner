@@ -77,6 +77,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> forgotPassword(String email, String phone, String password, String passwordConfirmation) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _apiService.forgotPassword(email, phone, password, passwordConfirmation);
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return _extractErrorMessage(e) ?? 'Password reset failed. Please try again.';
+    }
+  }
+
   String? _extractErrorMessage(dynamic error) {
     if (error is DioException && error.response != null) {
       final data = error.response!.data;
@@ -95,7 +110,28 @@ class AuthProvider extends ChangeNotifier {
           return data['message'].toString();
         }
       }
+
+      final statusCode = error.response!.statusCode;
+      if (statusCode != null && statusCode >= 500) {
+        return 'Server error ($statusCode). Check backend logs.';
+      }
     }
+
+    if (error is DioException && error.response == null) {
+      switch (error.type) {
+        case DioExceptionType.connectionError:
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.sendTimeout:
+          return 'Cannot reach server at ${ApiService.baseUrl}. Check API_URL and backend status.';
+        default:
+          final message = error.message?.trim();
+          if (message != null && message.isNotEmpty) {
+            return message;
+          }
+      }
+    }
+
     return null;
   }
 

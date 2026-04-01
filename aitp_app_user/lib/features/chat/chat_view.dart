@@ -163,8 +163,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ),
           ),
           const SizedBox(width: 10),
-          const Icon(Icons.mic, color: AppColors.gray600, size: 24),
-          const SizedBox(width: 10),
           GestureDetector(
             onTap: _sendMessage,
             child: Container(

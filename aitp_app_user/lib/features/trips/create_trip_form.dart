@@ -7,7 +7,9 @@ import '../../core/trip_provider.dart';
 import '../../core/places_service.dart';
 
 class CreateTripForm extends ConsumerStatefulWidget {
-  const CreateTripForm({super.key});
+  final Map<String, dynamic>? trip;
+
+  const CreateTripForm({super.key, this.trip});
 
   @override
   ConsumerState<CreateTripForm> createState() => _CreateTripFormState();
@@ -28,9 +30,31 @@ class _CreateTripFormState extends ConsumerState<CreateTripForm> {
   final List<String> _selectedInterests = ['Museums', 'Fine Dining', 'Walking Tours', 'Nature'];
   int _guests = 2;
   String _accommodation = 'Hotel';
+  bool get _isEditMode => widget.trip?['id'] != null;
 
   String _formatBudget(double b) {
     return b.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromTrip();
+  }
+
+  void _hydrateFromTrip() {
+    final trip = widget.trip;
+    if (trip == null) return;
+
+    _destinationController.text = trip['destination']?.toString() ?? '';
+    _startDate = _parseTripDate(trip['start_date'], _startDate);
+    _endDate = _parseTripDate(trip['end_date'], _endDate);
+    _budget = double.tryParse(trip['budget']?.toString() ?? '') ?? _budget;
+  }
+
+  DateTime _parseTripDate(dynamic value, DateTime fallback) {
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    return parsed ?? fallback;
   }
 
   @override
@@ -92,9 +116,9 @@ class _CreateTripFormState extends ConsumerState<CreateTripForm> {
                 child: const Icon(Icons.close, color: AppColors.white),
               ),
               const SizedBox(width: 16),
-              const Text(
-                'Plan Your Trip 🌍',
-                style: TextStyle(fontFamily: 'Fraunces', fontSize: 20, color: AppColors.white, fontWeight: FontWeight.bold),
+              Text(
+                _isEditMode ? 'Edit Trip' : 'Plan Your Trip 🌍',
+                style: const TextStyle(fontFamily: 'Fraunces', fontSize: 20, color: AppColors.white, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -393,6 +417,50 @@ class _CreateTripFormState extends ConsumerState<CreateTripForm> {
   }
 
   void _handleGenerate() async {
+    if (_isEditMode) {
+      final trip = widget.trip;
+      final tripId = int.tryParse(trip?['id']?.toString() ?? '');
+
+      if (tripId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trip ID is missing.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isGenerating = true;
+        _aiStatus = 'Saving your trip changes...';
+      });
+
+      final trips = ref.read(tripProvider);
+      final errorMessage = await trips.updateTrip(tripId, {
+        'destination': _destinationController.text.isEmpty ? 'Paris, France' : _destinationController.text,
+        'start_date': _startDate.toIso8601String(),
+        'end_date': _endDate.toIso8601String(),
+        'budget': _budget,
+        'status': trip?['status'] ?? 'Upcoming',
+      });
+
+      if (!mounted) return;
+
+      if (errorMessage == null) {
+        context.go('/home', extra: 2);
+      } else {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isGenerating = true;
     });
@@ -422,7 +490,7 @@ class _CreateTripFormState extends ConsumerState<CreateTripForm> {
 
     if (errorMessage == null) {
       if (mounted) {
-        context.go('/home');
+        context.go('/home', extra: 2);
       }
     } else {
       if (mounted) {
@@ -449,7 +517,11 @@ class _CreateTripFormState extends ConsumerState<CreateTripForm> {
             _handleGenerate();
           }
         },
-        child: Text(_currentStep < 4 ? 'Next → ${_getStepTitle()}' : '✨ Generate My Itinerary'),
+        child: Text(
+          _currentStep < 4
+              ? 'Next → ${_getStepTitle()}'
+              : (_isEditMode ? 'Save Changes' : '✨ Generate My Itinerary'),
+        ),
       ),
     );
   }

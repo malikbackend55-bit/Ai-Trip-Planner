@@ -13,11 +13,43 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@aitrip.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-        ]);
+        $email = env('ADMIN_EMAIL', 'admin@aitrip.com');
+        $password = env('ADMIN_PASSWORD', 'admin123');
+        $name = env('ADMIN_NAME', 'Admin User');
+        $phone = env('ADMIN_PHONE', '');
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            User::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => Hash::make($password),
+                'phone' => $phone,
+                'role' => 'admin',
+            ]);
+            return;
+        }
+
+        $dirty = false;
+
+        if (($user->role ?? 'user') !== 'admin') {
+            $user->role = 'admin';
+            $dirty = true;
+        }
+
+        if (empty($user->phone) && $phone !== '') {
+            $user->phone = $phone;
+            $dirty = true;
+        }
+
+        if (empty($user->name) && $name !== '') {
+            $user->name = $name;
+            $dirty = true;
+        }
+
+        if ($dirty) {
+            $user->save();
+        }
     }
 }
