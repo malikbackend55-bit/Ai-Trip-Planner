@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/auth_provider.dart';
-import '../../core/trip_provider.dart';
 import '../../core/theme.dart';
+import '../../core/trip_provider.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -18,11 +19,11 @@ class ProfileView extends ConsumerWidget {
     final tripList = trips.trips;
     final tripCount = tripList.length;
 
-    final Set<String> uniqueCountries = {};
-    for (var trip in tripList) {
+    final uniqueCountries = <String>{};
+    for (final trip in tripList) {
       if (trip != null && trip['destination'] != null) {
-        final dest = trip['destination'].toString();
-        final parts = dest.split(',');
+        final destination = trip['destination'].toString();
+        final parts = destination.split(',');
         uniqueCountries.add(parts.last.trim());
       }
     }
@@ -33,27 +34,33 @@ class ProfileView extends ConsumerWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeader(user).animate().fade(duration: 400.ms).slideY(begin: -0.1, curve: Curves.easeOutQuart),
+            _buildHeader(user)
+                .animate()
+                .fade(duration: 400.ms)
+                .slideY(begin: -0.1, curve: Curves.easeOutQuart),
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildStats(tripCount, countryCount).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  _buildStats(tripCount, countryCount)
+                      .animate()
+                      .fade(duration: 400.ms, delay: 100.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 24),
-                  _buildMenuSection('Preferences', [
-                    const _MenuItem(icon: '🎯', title: 'Interests & Hobbies'),
-                    const _MenuItem(icon: '💰', title: 'Default Budget'),
-                    const _MenuItem(icon: '🥗', title: 'Dietary Preferences'),
-                  ]).animate().fade(duration: 400.ms, delay: 200.ms).slideX(begin: 0.05, curve: Curves.easeOutQuart),
-                  const SizedBox(height: 16),
-                  _buildMenuSection('Settings', [
-                    const _MenuItem(icon: '🔔', title: 'Notifications', trailing: _Toggle(initialValue: true)),
-                    const _MenuItem(icon: '🌙', title: 'Dark Mode', trailing: _Toggle(initialValue: false)),
-                    const _MenuItem(icon: '🌐', title: 'Language'),
-                    const _MenuItem(icon: '🔒', title: 'Privacy & Security'),
-                  ]).animate().fade(duration: 400.ms, delay: 300.ms).slideX(begin: 0.05, curve: Curves.easeOutQuart),
+                  _buildMenuSection('Settings', const [
+                    _MenuItem(icon: '🔔', title: 'Notifications', trailing: _Toggle(initialValue: true)),
+                    _MenuItem(icon: '🌙', title: 'Dark Mode', trailing: _Toggle(initialValue: false)),
+                    _MenuItem(icon: '🌐', title: 'Language'),
+                    _MenuItem(icon: '🔒', title: 'Privacy & Security'),
+                  ])
+                      .animate()
+                      .fade(duration: 400.ms, delay: 200.ms)
+                      .slideX(begin: 0.05, curve: Curves.easeOutQuart),
                   const SizedBox(height: 24),
-                  _buildLogoutButton(context, ref).animate().fade(duration: 400.ms, delay: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  _buildLogoutButton(context, ref)
+                      .animate()
+                      .fade(duration: 400.ms, delay: 300.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -92,10 +99,16 @@ class ProfileView extends ConsumerWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.white.withValues(alpha: 0.3), width: 4),
               boxShadow: [
-                 BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 8)),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
-            child: const Center(child: Text('👤', style: TextStyle(fontSize: 40))),
+            child: const Center(
+              child: Text('👤', style: TextStyle(fontSize: 40)),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -122,8 +135,6 @@ class ProfileView extends ConsumerWidget {
         _StatCard(num: tripCount.toString(), label: 'Trips'),
         const SizedBox(width: 8),
         _StatCard(num: countryCount.toString(), label: 'Countries'),
-        const SizedBox(width: 8),
-        _StatCard(num: '💎', label: 'Premium'),
       ],
     );
   }
@@ -152,6 +163,7 @@ class ProfileView extends ConsumerWidget {
       onTap: () async {
         final auth = ref.read(authProvider);
         await auth.logout();
+        ref.read(tripProvider).clearTrips();
         if (context.mounted) {
           context.go('/login');
         }
@@ -181,6 +193,7 @@ class ProfileView extends ConsumerWidget {
 class _StatCard extends StatelessWidget {
   final String num;
   final String label;
+
   const _StatCard({required this.num, required this.label});
 
   @override
@@ -192,7 +205,11 @@ class _StatCard extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-             BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -208,7 +225,11 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.gray400),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.gray400,
+              ),
             ),
           ],
         ),
@@ -221,7 +242,12 @@ class _MenuItem extends StatelessWidget {
   final String icon;
   final String title;
   final Widget? trailing;
-  const _MenuItem({required this.icon, required this.title, this.trailing});
+
+  const _MenuItem({
+    required this.icon,
+    required this.title,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -232,14 +258,28 @@ class _MenuItem extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
         children: [
-          SizedBox(width: 24, child: Text(icon, style: const TextStyle(fontSize: 18))),
+          SizedBox(
+            width: 24,
+            child: Text(icon, style: const TextStyle(fontSize: 18)),
+          ),
           const SizedBox(width: 12),
-          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.gray700)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.gray700,
+            ),
+          ),
           const Spacer(),
           trailing ?? const Icon(Icons.chevron_right, color: AppColors.gray200, size: 20),
         ],
@@ -250,6 +290,7 @@ class _MenuItem extends StatelessWidget {
 
 class _Toggle extends StatefulWidget {
   final bool initialValue;
+
   const _Toggle({required this.initialValue});
 
   @override

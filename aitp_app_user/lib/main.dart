@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/auth_provider.dart';
+import 'core/trip_provider.dart';
 import 'core/theme.dart';
 import 'features/auth/splash_view.dart';
 import 'features/main_navigation.dart';
@@ -119,6 +120,8 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     if (!mounted) return;
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated) {
+      await ref.read(tripProvider).fetchTrips();
+      if (!mounted) return;
       context.go('/home');
     } else {
       context.go('/login');

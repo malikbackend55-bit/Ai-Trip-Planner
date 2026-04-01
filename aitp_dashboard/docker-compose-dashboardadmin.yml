@@ -1,0 +1,12 @@
+name: dashboard
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        API_URL: ${API_URL}
+    restart: unless-stopped
+    expose:
+      - "80"

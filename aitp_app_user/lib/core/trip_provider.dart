@@ -11,6 +11,12 @@ class TripProvider extends ChangeNotifier {
   List<dynamic> get trips => _trips;
   bool get isLoading => _isLoading;
 
+  void clearTrips() {
+    _trips = [];
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> fetchTrips() async {
     _isLoading = true;
     notifyListeners();

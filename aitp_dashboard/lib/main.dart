@@ -9,7 +9,6 @@ import 'features/dashboard/overview_view.dart';
 import 'features/dashboard/trips_view.dart';
 import 'features/dashboard/users_view.dart';
 import 'features/catalog/catalog_view.dart';
-import 'features/pricing/pricing_view.dart';
 import 'features/analytics/analytics_view.dart';
 import 'features/settings/settings_view.dart';
 import 'features/auth/login_view.dart';
@@ -78,14 +77,11 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
             } else if (location == '/catalog') {
               selectedIndex = 3;
               pageTitle = 'Package Catalog';
-            } else if (location == '/pricing') {
-              selectedIndex = 4;
-              pageTitle = 'Pricing Plans';
             } else if (location == '/analytics') {
-              selectedIndex = 5;
+              selectedIndex = 4;
               pageTitle = 'Advanced Analytics';
             } else if (location == '/settings') {
-              selectedIndex = 6;
+              selectedIndex = 5;
               pageTitle = 'System Settings';
             }
 
@@ -113,12 +109,9 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
                     context.go('/catalog');
                     break;
                   case 4:
-                    context.go('/pricing');
-                    break;
-                  case 5:
                     context.go('/analytics');
                     break;
-                  case 6:
+                  case 5:
                     context.go('/settings');
                     break;
                 }
@@ -145,7 +138,7 @@ class _AitpDashboardAppState extends ConsumerState<AitpDashboardApp> {
             ),
             GoRoute(
               path: '/pricing',
-              builder: (context, state) => const PricingView(),
+              redirect: (context, state) => '/overview',
             ),
             GoRoute(
               path: '/analytics',

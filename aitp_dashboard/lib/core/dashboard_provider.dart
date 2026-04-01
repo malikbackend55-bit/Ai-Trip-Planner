@@ -172,6 +172,21 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSession() {
+    _stats = {};
+    _users = [];
+    _trips = [];
+    _adminProfile = {};
+    _isLoading = false;
+    _tripFilter = 'All Trips';
+    _userFilter = 'All';
+    _catalogFilter = 'All';
+    _tripSearchQuery = '';
+    _userSearchQuery = '';
+    _catalogSearchQuery = '';
+    notifyListeners();
+  }
+
   Future<void> refresh() async {
     _isLoading = true;
     notifyListeners();

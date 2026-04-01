@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme.dart';
 import '../../core/auth_provider.dart';
+import '../../core/trip_provider.dart';
 
 class RegisterView extends ConsumerStatefulWidget {
   const RegisterView({super.key});
@@ -158,6 +159,7 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
       _passwordController.text,
     );
     if (errorMessage == null) {
+      await ref.read(tripProvider).fetchTrips();
       if (mounted) {
         context.go('/home');
       }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_service.dart';
+import '../../core/dashboard_provider.dart';
 import '../../core/theme.dart';
 
 class LoginView extends StatefulWidget {
@@ -38,6 +40,7 @@ class _LoginViewState extends State<LoginView> {
       _isLoading = true;
       _errorMessage = null;
     });
+    final container = ProviderScope.containerOf(context, listen: false);
 
     try {
       final response = await _apiService.login(email, password);
@@ -49,13 +52,15 @@ class _LoginViewState extends State<LoginView> {
 
         try {
           final profileResponse = await _apiService.getAdminProfile();
-          final role = profileResponse.data['role']?.toString().toLowerCase();
+            final role = profileResponse.data['role']?.toString().toLowerCase();
 
           if (role != 'admin') {
             await prefs.remove('auth_token');
             setState(() => _errorMessage = 'This dashboard requires an admin account.');
             return;
           }
+
+          await container.read(dashboardProvider).refresh();
 
           if (mounted) {
             context.go('/overview');
