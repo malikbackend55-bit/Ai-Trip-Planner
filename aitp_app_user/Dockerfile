@@ -20,15 +20,10 @@ FROM nginx:alpine
 # Copy the build artifacts from the build stage
 COPY --from=build /app/build/web /usr/share/nginx/html
 
-# Custom Nginx configuration to handle SPA routing (optional but recommended)
-RUN printf "server {\n\
-    listen 80;\n\
-    location / {\n\
-        root /usr/share/nginx/html;\n\
-        try_files \$uri \$uri/ /index.html;\n\
-    }\n\
-}\n" > /etc/nginx/conf.d/default.conf
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+
+ENV API_UPSTREAM=http://backend:8080
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/bin/sh", "-c", "envsubst '$API_UPSTREAM' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

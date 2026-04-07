@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\GeminiService;
 use Illuminate\Support\Facades\Auth;
+use Exception;
 
 class ChatController extends Controller
 {
@@ -27,8 +28,14 @@ class ChatController extends Controller
         $context = $request->input('context');
         $user = Auth::user();
 
-        // Get the simulated AI response
-        $response = $this->geminiService->generateChatResponse($message, $user, $context);
+        try {
+            $response = $this->geminiService->generateChatResponse($message, $user, $context);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 503);
+        }
 
         return response()->json([
             'status' => 'success',

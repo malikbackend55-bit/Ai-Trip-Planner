@@ -17,6 +17,10 @@ class ApiService {
       return apiUrl;
     }
 
+    if (kIsWeb) {
+      return Uri.base.resolve('/api').toString();
+    }
+
     return _coolifyDomainApiUrl;
   }
 

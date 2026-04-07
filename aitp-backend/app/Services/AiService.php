@@ -56,6 +56,19 @@ class AiService
         $message = strtolower(trim($message));
         $name = $user ? $user->name : 'there';
         $responses = [];
+        $asksWeather = $this->messageContainsAny($message, [
+            'weather', 'rain', 'sun', 'sunny', 'hot', 'cold', 'temperature', 'climate', 'snow', 'storm', 'cloudy', 'warm',
+        ]);
+        $asksHotels = $this->messageContainsAny($message, [
+            'hotel', 'hotels', 'airbnb', 'sleep', 'slep', 'stay', 'staying', 'accommodation', 'accommodations', 'hostel', 'hostels',
+        ]);
+        $asksBudget = $this->messageContainsAny($message, [
+            'budget', 'cheap', 'affordable', 'cost', 'costs', 'price', 'prices', 'expensive',
+        ]);
+        $asksFood = $this->messageContainsAny($message, [
+            'food', 'eat', 'eating', 'restaurant', 'restaurants', 'dining', 'meal', 'meals', 'dish', 'dishes',
+        ]);
+        $asksTips = $this->messageContainsAny($message, ['tip', 'tips', 'tinp', 'advice']);
         
         // Extract Destination if explicitly mentioned
         $destination = null;
@@ -83,7 +96,7 @@ class AiService
         }
 
         // 2. Weather Queries
-        if (preg_match('/(weather|rain|sun|hot|cold|temperature|climate|snow|storm|cloud|warm)/i', $message)) {
+        if ($asksWeather) {
             if ($destination) {
                 $responses[] = "The weather$destText is currently looking great for a trip! ⛅ Expect mild temperatures and mostly sunny skies.";
             } else {
@@ -92,7 +105,7 @@ class AiService
         }
 
         // 3. Accommodation / Sleep
-        if (str_contains($message, 'hotel') || str_contains($message, 'airbnb') || str_contains($message, 'sleep') || str_contains($message, 'slep') || str_contains($message, 'stay')) {
+        if ($asksHotels) {
             if ($destination) {
                 $responses[] = "For the best place to sleep$destText, I highly recommend staying right in the city center for convenience, or looking for top-rated boutique hotels/Airbnbs for a more local feel.";
             } else {
@@ -101,12 +114,12 @@ class AiService
         }
 
         // 4. Budget
-        if (str_contains($message, 'budget') || str_contains($message, 'cheap') || str_contains($message, 'affordable') || str_contains($message, 'cost')) {
+        if ($asksBudget) {
             $responses[] = "Traveling economically is completely doable! I recommend looking for hostels, using public transport tickets, and trying out local street food markets.";
         }
 
         // 5. Food
-        if (str_contains($message, 'food') || str_contains($message, 'eat') || str_contains($message, 'restaurant') || str_contains($message, 'dining') || str_contains($message, 'meal')) {
+        if ($asksFood) {
             if ($destination) {
                 $responses[] = "The food scene in $destination is incredible! I highly suggest diving into the local street food for authentic and cheap eats, or looking up highly-rated regional specialty restaurants near the main square.";
             } else {
@@ -115,7 +128,7 @@ class AiService
         }
 
         // 5. General Tips
-        if (str_contains($message, 'tip') || str_contains($message, 'tinp') || str_contains($message, 'best')) {
+        if ($asksTips) {
             $destName = $destination ? $destination : 'your destination';
             $responses[] = "My best tip for your trip to $destName is to wake up early! You'll beat the crowds at popular attractions and get the best lighting for your photos. Also, always carry a bit of local cash.";
         }
@@ -138,5 +151,12 @@ class AiService
         }
 
         return implode("\n\n", $responses);
+    }
+
+    private function messageContainsAny(string $message, array $keywords): bool
+    {
+        $pattern = '/\b(?:' . implode('|', array_map(static fn (string $keyword) => preg_quote($keyword, '/'), $keywords)) . ')\b/i';
+
+        return preg_match($pattern, $message) === 1;
     }
 }

@@ -212,9 +212,8 @@ PROMPT;
         $name = $user ? $user->name : 'traveler';
         $destination = $context['destination'] ?? null;
 
-        // If no API key, use mock fallback
         if (empty($this->apiKey) || $this->apiKey === 'your_gemini_api_key_here') {
-            return $this->fallbackChatResponse($message, $name, $destination);
+            throw new Exception('Gemini API is not configured.');
         }
 
         $destInfo = $destination ? "The user is currently viewing a trip to {$destination}. Use this context to give specific, relevant answers about {$destination}." : "The user has not specified a destination yet.";
@@ -243,8 +242,8 @@ SYS;
             $response = $this->callGemini($systemPrompt, $contents, false, $this->chatMaxOutputTokens, 0.9);
             return $response ?? "I'm sorry, I couldn't process that request. Could you try rephrasing?";
         } catch (Exception $e) {
-            Log::error('Gemini chat failed, using fallback', ['error' => $e->getMessage()]);
-            return $this->fallbackChatResponse($message, $name, $destination);
+            Log::error('Gemini chat failed', ['error' => $e->getMessage()]);
+            throw new Exception('Gemini chat is currently unavailable.', previous: $e);
         }
     }
 
@@ -256,6 +255,20 @@ SYS;
         $message = strtolower(trim($message));
         $responses = [];
         $destText = $destination ? " in $destination" : "";
+        $asksWeather = $this->messageContainsAny($message, [
+            'weather', 'rain', 'sun', 'sunny', 'hot', 'cold', 'temperature', 'climate', 'snow', 'storm', 'cloudy', 'warm',
+        ]);
+        $asksFood = $this->messageContainsAny($message, [
+            'food', 'eat', 'eating', 'restaurant', 'restaurants', 'dining', 'meal', 'meals', 'dish', 'dishes',
+        ]);
+        $asksHotels = $this->messageContainsAny($message, [
+            'hotel', 'hotels', 'stay', 'staying', 'sleep', 'airbnb', 'accommodation', 'accommodations', 'hostel', 'hostels',
+        ]);
+        $asksBudget = $this->messageContainsAny($message, [
+            'budget', 'cheap', 'affordable', 'cost', 'costs', 'price', 'prices', 'expensive',
+        ]);
+        $asksTips = $this->messageContainsAny($message, ['tip', 'tips', 'advice'])
+            || str_contains($message, 'what should i know');
 
         // Greetings
         if (preg_match('/^(hello|hi|hey)/i', $message)) {
@@ -263,7 +276,7 @@ SYS;
         }
 
         // Weather
-        if (preg_match('/(weather|rain|sun|hot|cold|temperature|climate)/i', $message)) {
+        if ($asksWeather) {
             if ($destination) {
                 $responses[] = "The weather$destText is currently looking great for a trip! ⛅ Expect mild temperatures and mostly sunny skies.";
             } else {
@@ -272,7 +285,7 @@ SYS;
         }
 
         // Food
-        if (str_contains($message, 'food') || str_contains($message, 'eat') || str_contains($message, 'restaurant') || str_contains($message, 'dining') || str_contains($message, 'meal')) {
+        if ($asksFood) {
             if ($destination) {
                 $responses[] = "The food scene in $destination is incredible! 🍽️ I highly suggest diving into the local street food for authentic and cheap eats, or looking up highly-rated regional specialty restaurants near the main square.";
             } else {
@@ -281,7 +294,7 @@ SYS;
         }
 
         // Hotels
-        if (str_contains($message, 'hotel') || str_contains($message, 'stay') || str_contains($message, 'sleep') || str_contains($message, 'airbnb')) {
+        if ($asksHotels) {
             if ($destination) {
                 $responses[] = "For the best place to stay$destText, I recommend staying right in the city center for convenience, or looking for top-rated boutique hotels for a more local feel. 🏨";
             } else {
@@ -290,12 +303,12 @@ SYS;
         }
 
         // Budget
-        if (str_contains($message, 'budget') || str_contains($message, 'cheap') || str_contains($message, 'affordable') || str_contains($message, 'cost')) {
+        if ($asksBudget) {
             $responses[] = "Traveling economically is completely doable! 💰 I recommend looking for hostels, using public transport, and trying out local street food markets.";
         }
 
         // Tips
-        if (str_contains($message, 'tip') || str_contains($message, 'best') || str_contains($message, 'recommend')) {
+        if ($asksTips) {
             $destName = $destination ?? 'your destination';
             $responses[] = "My best tip for $destName: wake up early! 🌅 You'll beat the crowds at popular attractions and get the best lighting for photos. Also, always carry a bit of local cash.";
         }
@@ -310,6 +323,13 @@ SYS;
         }
 
         return implode("\n\n", $responses);
+    }
+
+    private function messageContainsAny(string $message, array $keywords): bool
+    {
+        $pattern = '/\b(?:' . implode('|', array_map(static fn (string $keyword) => preg_quote($keyword, '/'), $keywords)) . ')\b/i';
+
+        return preg_match($pattern, $message) === 1;
     }
 
     /**
