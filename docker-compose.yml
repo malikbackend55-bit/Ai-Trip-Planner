@@ -30,7 +30,7 @@ services:
       context: ./aitp_app_user
       dockerfile: Dockerfile
       args:
-        API_URL: ${PUBLIC_API_URL}
+        API_URL: ${PUBLIC_API_URL:-http://owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io/api}
     image: aitp-user-app:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:

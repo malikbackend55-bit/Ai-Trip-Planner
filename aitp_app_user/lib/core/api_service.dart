@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   late Dio dio;
-  static const String _localDesktopApiUrl = 'http://127.0.0.1:8000/api';
-  static const String _localAndroidEmulatorApiUrl = 'http://10.0.2.2:8000/api';
+  static const String _backendApiUrl =
+      'http://owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io/api';
   static const Duration _defaultTimeout = Duration(seconds: 30);
   static const Duration _chatTimeout = Duration(seconds: 75);
   static const Duration _tripGenerationTimeout = Duration(minutes: 4);
@@ -13,22 +12,25 @@ class ApiService {
   static String get _configuredBaseUrl {
     const String apiUrl = String.fromEnvironment('API_URL');
     if (apiUrl.isNotEmpty) {
-      return apiUrl;
+      return _normalizeApiUrl(apiUrl);
     }
 
-    if (kIsWeb) {
-      return _localDesktopApiUrl;
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return _localAndroidEmulatorApiUrl;
-    }
-
-    return _localDesktopApiUrl;
+    return _backendApiUrl;
   }
 
   static String get baseUrl {
     return _configuredBaseUrl;
+  }
+
+  static String _normalizeApiUrl(String url) {
+    final trimmed = url.trim();
+    final withoutTrailingSlash = trimmed.replaceFirst(RegExp(r'/+$'), '');
+
+    if (withoutTrailingSlash.endsWith('/api')) {
+      return withoutTrailingSlash;
+    }
+
+    return '$withoutTrailingSlash/api';
   }
 
   ApiService() {
