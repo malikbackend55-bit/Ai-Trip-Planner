@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TripController;
@@ -13,6 +12,8 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user', [AuthController::class, 'updateProfile']);
     
     // Admin Routes
     Route::get('/admin/stats', [AdminController::class, 'stats']);
@@ -30,7 +31,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/trips/generate', [TripController::class, 'generate']);
     Route::apiResource('trips', TripController::class);
     Route::post('/chat', [ChatController::class, 'sendMessage']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
 });

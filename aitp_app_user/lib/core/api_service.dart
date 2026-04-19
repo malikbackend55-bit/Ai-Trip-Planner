@@ -4,10 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   late Dio dio;
-  static const String _coolifyDomain =
-      'owkgkkwckg0www4s4c0oww8s.45.32.155.226.sslip.io';
-  static const String _coolifyDomainApiUrl = 'http://$_coolifyDomain/api';
-  static const String _coolifyIpApiUrl = 'http://45.32.155.226/api';
+  static const String _localDesktopApiUrl = 'http://127.0.0.1:8000/api';
+  static const String _localAndroidEmulatorApiUrl = 'http://10.0.2.2:8000/api';
+  static const Duration _defaultTimeout = Duration(seconds: 30);
+  static const Duration _chatTimeout = Duration(seconds: 75);
+  static const Duration _tripGenerationTimeout = Duration(minutes: 4);
 
   static String get _configuredBaseUrl {
     const String apiUrl = String.fromEnvironment('API_URL');
@@ -16,43 +17,26 @@ class ApiService {
     }
 
     if (kIsWeb) {
-      return Uri.base.resolve('/api').toString();
+      return _localDesktopApiUrl;
     }
 
-    return _coolifyDomainApiUrl;
-  }
-
-  static bool get _useAndroidHostHeaderWorkaround {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
-      return false;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _localAndroidEmulatorApiUrl;
     }
 
-    final uri = Uri.tryParse(_configuredBaseUrl);
-    return uri != null && uri.scheme == 'http' && uri.host == _coolifyDomain;
+    return _localDesktopApiUrl;
   }
 
   static String get baseUrl {
-    if (_useAndroidHostHeaderWorkaround) {
-      return _coolifyIpApiUrl;
-    }
-
     return _configuredBaseUrl;
-  }
-
-  static String? get hostHeader {
-    if (_useAndroidHostHeaderWorkaround) {
-      return _coolifyDomain;
-    }
-
-    return null;
   }
 
   ApiService() {
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: _defaultTimeout,
+        receiveTimeout: _defaultTimeout,
       ),
     );
 
@@ -65,10 +49,6 @@ class ApiService {
             options.headers['Authorization'] = 'Bearer $token';
           }
           options.headers['Accept'] = 'application/json';
-          final host = hostHeader;
-          if (host != null) {
-            options.headers['Host'] = host;
-          }
           return handler.next(options);
         },
         onError: (DioException e, handler) {
@@ -121,6 +101,17 @@ class ApiService {
     );
   }
 
+  Future<Response> sendChat(
+    String message, {
+    Map<String, dynamic>? context,
+  }) async {
+    return dio.post(
+      '/chat',
+      data: {'message': message, 'context': context},
+      options: Options(sendTimeout: _chatTimeout, receiveTimeout: _chatTimeout),
+    );
+  }
+
   // Trip Methods
   Future<Response> getTrips() async {
     return dio.get('/trips');
@@ -135,12 +126,30 @@ class ApiService {
   }
 
   Future<Response> generateTrip(Map<String, dynamic> data) async {
-    return dio.post('/trips/generate', data: data);
+    return dio.post(
+      '/trips/generate',
+      data: data,
+      options: Options(
+        sendTimeout: _tripGenerationTimeout,
+        receiveTimeout: _tripGenerationTimeout,
+      ),
+    );
   }
 
   // User Profile
   Future<Response> getUser() async {
     return dio.get('/user');
+  }
+
+  Future<Response> updateProfile(
+    String name,
+    String email,
+    String phone,
+  ) async {
+    return dio.put(
+      '/user',
+      data: {'name': name, 'email': email, 'phone': phone},
+    );
   }
 
   Future<Response> logout() async {

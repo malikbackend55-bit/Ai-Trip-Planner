@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/app_localization.dart';
 import '../../core/auth_provider.dart';
+import '../../core/theme.dart';
 import '../../core/trip_provider.dart';
+import '../../core/widgets/beautiful_text_field.dart';
 
 class RegisterView extends ConsumerStatefulWidget {
   const RegisterView({super.key});
@@ -15,15 +18,17 @@ class RegisterView extends ConsumerStatefulWidget {
 }
 
 class _RegisterViewState extends ConsumerState<RegisterView> {
-   final TextEditingController _nameController = TextEditingController();
-   final TextEditingController _emailController = TextEditingController();
-   final TextEditingController _phoneController = TextEditingController();
-   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
+
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: context.appScaffoldColor,
       body: Stack(
         children: [
           _buildBackground(),
@@ -36,24 +41,39 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: const Icon(Icons.arrow_back, color: AppColors.gray800),
+                    child: Icon(Icons.arrow_back, color: context.appTextColor),
                   ),
                   const SizedBox(height: 40),
                   Text(
-                    'Create Account ✈️',
-                    style: GoogleFonts.fraunces(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.g900,
-                    ),
-                  ).animate().fade(duration: 500.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                        '${strings.tr('auth.createAccount')} ✈️',
+                        style:
+                            (context.appLanguage.isRtl
+                            ? GoogleFonts.notoKufiArabic
+                            : GoogleFonts.fraunces)(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: context.appTextColor,
+                            ),
+                      )
+                      .animate()
+                      .fade(duration: 500.ms, delay: 100.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Join thousands of travelers planning with AI.',
-                    style: TextStyle(color: AppColors.gray400, fontSize: 14),
-                  ).animate().fade(duration: 500.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  Text(
+                        strings.tr('auth.joinTravelers'),
+                        style: TextStyle(
+                          color: context.appMutedTextColor,
+                          fontSize: 14,
+                        ),
+                      )
+                      .animate()
+                      .fade(duration: 500.ms, delay: 200.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 32),
-                  _buildForm().animate().fade(duration: 500.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  _buildForm(strings)
+                      .animate()
+                      .fade(duration: 500.ms, delay: 300.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                 ],
               ),
             ),
@@ -71,68 +91,74 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
         width: 300,
         height: 300,
         decoration: BoxDecoration(
-          color: AppColors.g50,
+          color: AppColors.g500.withValues(alpha: 0.3),
           shape: BoxShape.circle,
         ),
       ),
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(AppStrings strings) {
     return Column(
       children: [
-        _buildTextField('Full Name', Icons.person_outline, controller: _nameController),
+        BeautifulTextField(
+          label: strings.tr('common.fullName'),
+          hintText: strings.tr('common.fullName'),
+          icon: Icons.person_outline,
+          controller: _nameController,
+          textCapitalization: TextCapitalization.words,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('Email Address', Icons.email_outlined, controller: _emailController),
+        BeautifulTextField(
+          label: strings.tr('common.email'),
+          hintText: strings.tr('common.email'),
+          icon: Icons.email_outlined,
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('Phone Number', Icons.phone_outlined, controller: _phoneController),
+        BeautifulTextField(
+          label: strings.tr('common.phone'),
+          hintText: strings.tr('common.phone'),
+          icon: Icons.phone_outlined,
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('Password', Icons.lock_outline, isPassword: true, controller: _passwordController),
+        BeautifulTextField(
+          label: strings.tr('common.password'),
+          hintText: strings.tr('common.password'),
+          icon: Icons.lock_outline,
+          controller: _passwordController,
+          isPassword: true,
+        ),
         const SizedBox(height: 24),
-        _buildTerms(),
+        _buildTerms(strings),
         const SizedBox(height: 32),
         ElevatedButton(
           onPressed: _handleRegister,
-          child: const Text('Create Account'),
+          child: Text(strings.tr('auth.createAccount')),
         ),
         const SizedBox(height: 32),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Already have an account?', style: TextStyle(color: AppColors.gray400, fontSize: 13)),
+            Text(
+              strings.tr('auth.alreadyHaveAccount'),
+              style: TextStyle(color: context.appMutedTextColor, fontSize: 13),
+            ),
             TextButton(
               onPressed: () => context.go('/login'),
-              child: const Text('Login', style: TextStyle(color: AppColors.g700, fontWeight: FontWeight.bold, fontSize: 13)),
+              child: Text(
+                strings.tr('auth.login'),
+                style: TextStyle(
+                  color: context.isDarkMode ? AppColors.g300 : AppColors.g700,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, IconData icon, {bool isPassword = false, TextEditingController? controller}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.gray600)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.gray50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.gray200),
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPassword,
-            decoration: InputDecoration(
-              icon: Icon(icon, color: AppColors.gray400, size: 20),
-              border: InputBorder.none,
-              hintText: label,
-              hintStyle: const TextStyle(color: AppColors.gray200, fontSize: 14),
-            ),
-          ),
         ),
       ],
     );
@@ -145,7 +171,7 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
         _passwordController.text.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in all fields')),
+          SnackBar(content: Text(context.tr('auth.fillAllFields'))),
         );
       }
       return;
@@ -158,22 +184,20 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
       _phoneController.text.trim(),
       _passwordController.text,
     );
+
     if (errorMessage == null) {
       await ref.read(tripProvider).fetchTrips();
       if (mounted) {
         context.go('/home');
       }
-    } else {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
   }
 
-  Widget _buildTerms() {
+  Widget _buildTerms(AppStrings strings) {
     return Row(
       children: [
         Container(
@@ -186,10 +210,10 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
           child: const Icon(Icons.check, color: Colors.white, size: 14),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Text(
-            'I agree to the Terms of Service and Privacy Policy.',
-            style: TextStyle(color: AppColors.gray400, fontSize: 12),
+            strings.tr('auth.terms'),
+            style: TextStyle(color: context.appMutedTextColor, fontSize: 12),
           ),
         ),
       ],

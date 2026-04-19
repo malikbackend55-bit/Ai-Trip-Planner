@@ -1,14 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import 'package:flutter/material.dart';
+
+import '../core/app_localization.dart';
 import '../core/theme.dart';
-import 'home/home_view.dart';
-import 'explore/explore_view.dart';
-import 'trips/my_trips_view.dart';
 import 'chat/chat_view.dart';
+import 'explore/explore_view.dart';
+import 'home/home_view.dart';
 import 'profile/profile_view.dart';
+import 'trips/my_trips_view.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
+
   const MainNavigation({super.key, this.initialIndex = 0});
 
   @override
@@ -18,19 +21,19 @@ class MainNavigation extends StatefulWidget {
 class MainNavigationState extends State<MainNavigation> {
   late int _currentIndex;
 
+  final List<Widget> _pages = const [
+    HomeView(),
+    ExploreView(),
+    MyTripsView(),
+    ChatView(),
+    ProfileView(),
+  ];
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
   }
-
-  final List<Widget> _pages = [
-    const HomeView(),
-    const ExploreView(),
-    const MyTripsView(),
-    const ChatView(),
-    const ProfileView(),
-  ];
 
   void switchTab(int index) {
     setState(() => _currentIndex = index);
@@ -52,10 +55,10 @@ class MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: context.appNavBarColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: context.appShadowColor,
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -63,15 +66,15 @@ class MainNavigationState extends State<MainNavigation> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, 'Home', '🏠'),
-                _buildNavItem(1, 'Explore', '🔍'),
-                _buildNavItem(2, 'My Trips', '✈️'),
-                _buildNavItem(3, 'AI Chat', '🤖'),
-                _buildNavItem(4, 'Profile', '👤'),
+                _buildNavItem(0, context.tr('nav.home'), '🏠'),
+                _buildNavItem(1, context.tr('nav.explore'), '🔍'),
+                _buildNavItem(2, context.tr('nav.myTrips'), '✈️'),
+                _buildNavItem(3, context.tr('nav.aiChat'), '🤖'),
+                _buildNavItem(4, context.tr('nav.profile'), '👤'),
               ],
             ),
           ),
@@ -95,9 +98,14 @@ class MainNavigationState extends State<MainNavigation> {
               icon,
               style: TextStyle(
                 fontSize: 22,
-                shadows: isActive 
-                  ? [Shadow(color: AppColors.g500.withValues(alpha: 0.5), blurRadius: 4)]
-                  : null,
+                shadows: isActive
+                    ? [
+                        Shadow(
+                          color: AppColors.g500.withValues(alpha: 0.5),
+                          blurRadius: 4,
+                        ),
+                      ]
+                    : null,
               ),
             ),
           ),
@@ -107,7 +115,7 @@ class MainNavigationState extends State<MainNavigation> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: isActive ? AppColors.g600 : AppColors.gray400,
+              color: isActive ? AppColors.g600 : context.appMutedTextColor,
             ),
           ),
           if (isActive)

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/app_localization.dart';
 import '../../core/explore_provider.dart';
+import '../../core/theme.dart';
 
 class ExploreView extends ConsumerStatefulWidget {
   const ExploreView({super.key});
@@ -27,54 +29,74 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
     final provider = ref.watch(exploreProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: context.appScaffoldColor,
       body: Column(
         children: [
           _buildHeader(provider),
           _buildFilterChips(provider),
           Expanded(
             child: provider.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.g600))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.g600),
+                  )
                 : provider.destinations.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('🔍', style: TextStyle(fontSize: 48)),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No destinations found',
-                              style: TextStyle(color: AppColors.gray400, fontSize: 14),
-                            ),
-                            if (provider.searchQuery.isNotEmpty || provider.activeFilter != 'All')
-                              TextButton(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  ref.read(exploreProvider).setSearchQuery('');
-                                  ref.read(exploreProvider).setFilter('All');
-                                },
-                                child: const Text('Clear filters'),
-                              ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔍', style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 12),
+                        Text(
+                          context.tr('explore.noDestinations'),
+                          style: TextStyle(
+                            color: context.appMutedTextColor,
+                            fontSize: 14,
+                          ),
                         ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        children: [
-                          ...provider.destinations.map((d) => _ExploreCard(
-                            name: d.name,
-                            sub: d.subtitle,
-                            price: d.price,
-                            emoji: d.emoji,
-                            rating: d.rating,
-                            color: d.color,
-                            onTap: () => context.push('/create-trip', extra: {
-                              'destination': d.name,
-                            }),
-                          )),
-                          const SizedBox(height: 80),
-                        ].animate(interval: 100.ms).fade(duration: 400.ms).slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutQuart),
-                      ),
+                        if (provider.searchQuery.isNotEmpty ||
+                            provider.activeFilter != 'All')
+                          TextButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              ref.read(exploreProvider).setSearchQuery('');
+                              ref.read(exploreProvider).setFilter('All');
+                            },
+                            child: Text(context.tr('common.clearFilters')),
+                          ),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    children:
+                        [
+                              ...provider.destinations.map((destination) {
+                                return _ExploreCard(
+                                  name: destination.name,
+                                  sub: destination.subtitle,
+                                  price: destination.price,
+                                  emoji: destination.emoji,
+                                  rating: destination.rating,
+                                  color: destination.color,
+                                  onTap: () => context.push(
+                                    '/create-trip',
+                                    extra: {'destination': destination.name},
+                                  ),
+                                );
+                              }),
+                              const SizedBox(height: 80),
+                            ]
+                            .animate(interval: 100.ms)
+                            .fade(duration: 400.ms)
+                            .slideY(
+                              begin: 0.1,
+                              duration: 400.ms,
+                              curve: Curves.easeOutQuart,
+                            ),
+                  ),
           ),
         ],
       ),
@@ -91,19 +113,19 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Explore 🌍',
-                style: GoogleFonts.fraunces(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.gray800,
-                ),
+                '${context.tr('explore.title')} 🌍',
+                style:
+                    (context.appLanguage.isRtl
+                    ? GoogleFonts.notoKufiArabic
+                    : GoogleFonts.fraunces)(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: context.appTextColor,
+                    ),
               ),
               GestureDetector(
-                onTap: () {
-                  // Refresh destinations
-                  ref.read(exploreProvider).fetchDestinations();
-                },
-                child: const Icon(Icons.refresh, color: AppColors.gray600),
+                onTap: () => ref.read(exploreProvider).fetchDestinations(),
+                child: Icon(Icons.refresh, color: context.appSubtextColor),
               ),
             ],
           ),
@@ -111,20 +133,26 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: AppColors.gray50,
+              color: context.appSurfaceAltColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.gray200),
+              border: Border.all(color: context.appBorderStrongColor),
             ),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) {
-                ref.read(exploreProvider).setSearchQuery(value);
-              },
-              decoration: const InputDecoration(
-                icon: Icon(Icons.search, color: AppColors.gray400, size: 20),
-                hintText: 'Search destinations...',
+              onChanged: (value) =>
+                  ref.read(exploreProvider).setSearchQuery(value),
+              decoration: InputDecoration(
+                icon: const Icon(
+                  Icons.search,
+                  color: AppColors.gray400,
+                  size: 20,
+                ),
+                hintText: context.tr('explore.searchHint'),
                 border: InputBorder.none,
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.gray400),
+                hintStyle: TextStyle(
+                  fontSize: 13,
+                  color: context.appMutedTextColor,
+                ),
               ),
             ),
           ),
@@ -134,20 +162,29 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
   }
 
   Widget _buildFilterChips(ExploreProvider provider) {
-    final filters = ['All', '🏖️ Beach', '🏙️ City', '⛰️ Nature', '💰 Budget', '✨ Luxury'];
-    final filterKeys = ['All', 'Beach', 'City', 'Nature', 'Budget', 'Luxury'];
+    final filters = ['All', 'Beach', 'City', 'Nature', 'Budget', 'Luxury'];
+    final icons = {
+      'All': '🌍',
+      'Beach': '🏖️',
+      'City': '🏙️',
+      'Nature': '⛰️',
+      'Budget': '💰',
+      'Luxury': '✨',
+    };
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
-        children: List.generate(filters.length, (i) {
-          final isActive = provider.activeFilter == filterKeys[i];
+        children: filters.map((filter) {
+          final isActive = provider.activeFilter == filter;
+          final label =
+              '${icons[filter]} ${context.strings.filterLabel(filter)}';
           return GestureDetector(
-            onTap: () => ref.read(exploreProvider).setFilter(filterKeys[i]),
-            child: _Chip(label: filters[i], isActive: isActive),
+            onTap: () => ref.read(exploreProvider).setFilter(filter),
+            child: _Chip(label: label, isActive: isActive),
           );
-        }),
+        }).toList(),
       ).animate().fade(duration: 400.ms, delay: 200.ms),
     );
   }
@@ -156,6 +193,7 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
 class _Chip extends StatelessWidget {
   final String label;
   final bool isActive;
+
   const _Chip({required this.label, this.isActive = false});
 
   @override
@@ -164,16 +202,18 @@ class _Chip extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.g600 : AppColors.white,
+        color: isActive ? AppColors.g600 : context.appSurfaceColor,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: isActive ? AppColors.g600 : AppColors.gray200),
+        border: Border.all(
+          color: isActive ? AppColors.g600 : context.appBorderStrongColor,
+        ),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: isActive ? AppColors.white : AppColors.gray600,
+          color: isActive ? AppColors.white : context.appSubtextColor,
         ),
       ),
     );
@@ -188,6 +228,7 @@ class _ExploreCard extends StatelessWidget {
   final String rating;
   final Color color;
   final VoidCallback onTap;
+
   const _ExploreCard({
     required this.name,
     required this.sub,
@@ -205,11 +246,15 @@ class _ExploreCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: context.appSurfaceColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.gray100),
+          border: Border.all(color: context.appBorderColor),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: context.appShadowColor,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
@@ -219,7 +264,9 @@ class _ExploreCard extends StatelessWidget {
               width: 90,
               height: 90,
               color: color.withValues(alpha: 0.15),
-              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 32))),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 32)),
+              ),
             ),
             Expanded(
               child: Padding(
@@ -227,20 +274,53 @@ class _ExploreCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-                    Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.gray400)),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      sub,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.appMutedTextColor,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.star, color: AppColors.coral, size: 14),
+                            const Icon(
+                              Icons.star,
+                              color: AppColors.coral,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
-                            Text(rating, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.coral)),
+                            Text(
+                              rating,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.coral,
+                              ),
+                            ),
                           ],
                         ),
-                        Text('from $price', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.g700)),
+                        Text(
+                          context.tr(
+                            'common.fromPrice',
+                            params: {'price': price},
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.g700,
+                          ),
+                        ),
                       ],
                     ),
                   ],

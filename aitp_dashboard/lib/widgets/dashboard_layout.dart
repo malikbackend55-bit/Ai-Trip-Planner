@@ -8,7 +8,7 @@ import '../core/dashboard_provider.dart';
 import '../core/responsive.dart';
 import '../core/theme.dart';
 
-class DashboardLayout extends StatefulWidget {
+class DashboardLayout extends ConsumerStatefulWidget {
   final Widget content;
   final int selectedIndex;
   final Function(int) onIndexChanged;
@@ -27,10 +27,10 @@ class DashboardLayout extends StatefulWidget {
   });
 
   @override
-  State<DashboardLayout> createState() => _DashboardLayoutState();
+  ConsumerState<DashboardLayout> createState() => _DashboardLayoutState();
 }
 
-class _DashboardLayoutState extends State<DashboardLayout> {
+class _DashboardLayoutState extends ConsumerState<DashboardLayout> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isSidebarCollapsed = false;
 
@@ -39,6 +39,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     final isMobile = AppBreakpoints.isMobile(context);
     final isTablet = AppBreakpoints.isTablet(context);
     final contentPadding = EdgeInsets.all(isMobile ? 16 : 24);
+    final errorMessage = ref.watch(dashboardProvider).lastRefreshError;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -65,7 +66,16 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: contentPadding,
-                      child: widget.content,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (errorMessage != null) ...[
+                            _buildErrorBanner(errorMessage),
+                            const SizedBox(height: 16),
+                          ],
+                          widget.content,
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -73,6 +83,41 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: AppColors.error,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton(
+            onPressed: () => ref.read(dashboardProvider).refresh(),
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }
@@ -397,15 +442,11 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final container = ProviderScope.containerOf(
-                    context,
-                    listen: false,
-                  );
                   Navigator.of(ctx).pop();
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.remove('auth_token');
                   authSession.markLoggedOut();
-                  container.read(dashboardProvider).clearSession();
+                  ref.read(dashboardProvider).clearSession();
                   if (mounted) {
                     context.go('/login');
                   }

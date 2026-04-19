@@ -20,7 +20,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
   final ApiService _apiService = ApiService();
-  bool darkMode = false;
   bool _isExporting = false;
   bool _isResetting = false;
 
@@ -52,8 +51,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
       opacity: _anim,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < AppBreakpoints.tablet;
-
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -66,19 +63,7 @@ class _SettingsViewState extends ConsumerState<SettingsView>
                 ),
               ),
               const SizedBox(height: 24),
-              if (isNarrow) ...[
-                _buildPrimaryColumn(profile),
-                const SizedBox(height: 24),
-                _buildSecondaryColumn(),
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildPrimaryColumn(profile)),
-                    const SizedBox(width: 24),
-                    Expanded(child: _buildSecondaryColumn()),
-                  ],
-                ),
+              _buildPrimaryColumn(profile),
             ],
           );
         },
@@ -92,14 +77,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
         _buildProfileSection(profile),
         const SizedBox(height: 24),
         _buildDangerZone(),
-      ],
-    );
-  }
-
-  Widget _buildSecondaryColumn() {
-    return Column(
-      children: [
-        _buildAppearanceSection(),
       ],
     );
   }
@@ -251,90 +228,6 @@ class _SettingsViewState extends ConsumerState<SettingsView>
     );
   }
 
-  Widget _buildToggle(
-    String title,
-    String subtitle,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textDim),
-              ),
-            ],
-          ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
-          thumbColor: WidgetStateProperty.resolveWith<Color?>(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAppearanceSection() {
-    return _buildCard(
-      'Appearance',
-      Column(
-        children: [
-          _buildToggle(
-            'Dark Mode',
-            'Switch to dark theme',
-            darkMode,
-            (value) => setState(() => darkMode = value),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text(
-                'Accent Color',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              ...[
-                AppColors.primary,
-                AppColors.accent,
-                Colors.blue,
-                Colors.purple,
-              ].map(
-                (color) => Container(
-                  margin: const EdgeInsets.only(left: 8),
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(8),
-                    border: color == AppColors.primary
-                        ? Border.all(color: AppColors.textMain, width: 2)
-                        : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _handleExport() async {
     if (_isExporting) {

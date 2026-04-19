@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/app_localization.dart';
 import '../../core/theme.dart';
 
 class SplashView extends StatefulWidget {
@@ -9,10 +11,11 @@ class SplashView extends StatefulWidget {
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+class _SplashViewState extends State<SplashView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -22,13 +25,15 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 1500),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
   }
@@ -75,10 +80,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                     ],
                   ),
                   child: const Center(
-                    child: Text(
-                      '🌍',
-                      style: TextStyle(fontSize: 48),
-                    ),
+                    child: Text('🌍', style: TextStyle(fontSize: 48)),
                   ),
                 ),
               ),
@@ -88,18 +90,21 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
               opacity: _fadeAnimation,
               child: Column(
                 children: [
-                   Text(
-                    'AI Trip Planner',
-                    style: GoogleFonts.fraunces(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
-                    ),
+                  Text(
+                    context.tr('app.title'),
+                    style:
+                        (context.appLanguage.isRtl
+                        ? GoogleFonts.notoKufiArabic
+                        : GoogleFonts.fraunces)(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Plan smarter. Travel better.',
-                    style: TextStyle(
+                  Text(
+                    context.tr('app.tagline'),
+                    style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.g300,
                       letterSpacing: 0.5,
@@ -109,9 +114,9 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
               ),
             ),
             const SizedBox(height: 64),
-             Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) => _buildDot(index)),
+              children: List.generate(3, _buildDot),
             ),
           ],
         ),

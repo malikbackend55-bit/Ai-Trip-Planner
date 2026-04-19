@@ -4,17 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Services\GeminiService;
+use App\Services\ChatAiService;
 use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class ChatController extends Controller
 {
-    protected $geminiService;
+    protected $chatAiService;
 
-    public function __construct(GeminiService $geminiService)
+    public function __construct(ChatAiService $chatAiService)
     {
-        $this->geminiService = $geminiService;
+        $this->chatAiService = $chatAiService;
     }
 
     public function sendMessage(Request $request)
@@ -29,7 +29,7 @@ class ChatController extends Controller
         $user = Auth::user();
 
         try {
-            $response = $this->geminiService->generateChatResponse($message, $user, $context);
+            $response = $this->chatAiService->generateChatResponse($message, $user, $context);
         } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',

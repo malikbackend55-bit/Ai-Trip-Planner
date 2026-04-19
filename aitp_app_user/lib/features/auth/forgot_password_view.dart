@@ -3,8 +3,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/app_localization.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/beautiful_text_field.dart';
 
 class ForgotPasswordView extends ConsumerStatefulWidget {
   final String? initialEmail;
@@ -19,7 +22,8 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -38,8 +42,10 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
+
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: context.appScaffoldColor,
       body: Stack(
         children: [
           _buildBackground(),
@@ -52,24 +58,39 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: const Icon(Icons.arrow_back, color: AppColors.gray800),
+                    child: Icon(Icons.arrow_back, color: context.appTextColor),
                   ),
                   const SizedBox(height: 40),
                   Text(
-                    'Reset Password',
-                    style: GoogleFonts.fraunces(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.g900,
-                    ),
-                  ).animate().fade(duration: 500.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                        strings.tr('auth.resetPassword'),
+                        style:
+                            (context.appLanguage.isRtl
+                            ? GoogleFonts.notoKufiArabic
+                            : GoogleFonts.fraunces)(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: context.appTextColor,
+                            ),
+                      )
+                      .animate()
+                      .fade(duration: 500.ms, delay: 100.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Use your email and phone number to set a new password.',
-                    style: TextStyle(color: AppColors.gray400, fontSize: 14),
-                  ).animate().fade(duration: 500.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  Text(
+                        strings.tr('auth.resetSubtitle'),
+                        style: TextStyle(
+                          color: context.appMutedTextColor,
+                          fontSize: 14,
+                        ),
+                      )
+                      .animate()
+                      .fade(duration: 500.ms, delay: 200.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                   const SizedBox(height: 32),
-                  _buildForm().animate().fade(duration: 500.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuart),
+                  _buildForm(strings)
+                      .animate()
+                      .fade(duration: 500.ms, delay: 300.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOutQuart),
                 ],
               ),
             ),
@@ -94,48 +115,44 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(AppStrings strings) {
     return Column(
       children: [
-        _buildTextField('Email Address', Icons.email_outlined, controller: _emailController),
+        BeautifulTextField(
+          label: strings.tr('common.email'),
+          hintText: strings.tr('common.email'),
+          icon: Icons.email_outlined,
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('Phone Number', Icons.phone_outlined, controller: _phoneController),
+        BeautifulTextField(
+          label: strings.tr('common.phone'),
+          hintText: strings.tr('common.phone'),
+          icon: Icons.phone_outlined,
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('New Password', Icons.lock_outline, controller: _passwordController, isPassword: true),
+        BeautifulTextField(
+          label: strings.tr('auth.newPassword'),
+          hintText: strings.tr('auth.newPassword'),
+          icon: Icons.lock_outline,
+          controller: _passwordController,
+          isPassword: true,
+        ),
         const SizedBox(height: 16),
-        _buildTextField('Confirm Password', Icons.lock_reset_outlined, controller: _confirmPasswordController, isPassword: true),
+        BeautifulTextField(
+          label: strings.tr('auth.confirmPassword'),
+          hintText: strings.tr('auth.confirmPassword'),
+          icon: Icons.lock_reset_outlined,
+          controller: _confirmPasswordController,
+          isPassword: true,
+        ),
         const SizedBox(height: 32),
         ElevatedButton(
           onPressed: _handleReset,
-          child: const Text('Reset Password'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, IconData icon, {required TextEditingController controller, bool isPassword = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.gray600)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.gray50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.gray200),
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPassword,
-            decoration: InputDecoration(
-              icon: Icon(icon, color: AppColors.gray400, size: 20),
-              border: InputBorder.none,
-              hintText: label,
-              hintStyle: const TextStyle(color: AppColors.gray200, fontSize: 14),
-            ),
-          ),
+          child: Text(strings.tr('auth.resetPassword')),
         ),
       ],
     );
@@ -146,15 +163,15 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
         _phoneController.text.trim().isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('auth.fillAllFields'))));
       return;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        SnackBar(content: Text(context.tr('auth.passwordMismatch'))),
       );
       return;
     }
@@ -171,13 +188,13 @@ class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
 
     if (errorMessage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset successful. Log in with your new password.')),
+        SnackBar(content: Text(context.tr('auth.passwordResetSuccess'))),
       );
       context.go('/login');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
   }
 }

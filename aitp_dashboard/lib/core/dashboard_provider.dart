@@ -10,6 +10,7 @@ class DashboardProvider extends ChangeNotifier {
   List<dynamic> _trips = [];
   Map<String, dynamic> _adminProfile = {};
   bool _isLoading = false;
+  String? _lastRefreshError;
 
   // Filter / search state
   String _tripFilter = 'All Trips';
@@ -24,6 +25,7 @@ class DashboardProvider extends ChangeNotifier {
   List<dynamic> get trips => _trips;
   Map<String, dynamic> get adminProfile => _adminProfile;
   bool get isLoading => _isLoading;
+  String? get lastRefreshError => _lastRefreshError;
 
   String get tripFilter => _tripFilter;
   String get userFilter => _userFilter;
@@ -242,6 +244,7 @@ class DashboardProvider extends ChangeNotifier {
     _trips = [];
     _adminProfile = {};
     _isLoading = false;
+    _lastRefreshError = null;
     _tripFilter = 'All Trips';
     _userFilter = 'All';
     _catalogFilter = 'All';
@@ -253,6 +256,7 @@ class DashboardProvider extends ChangeNotifier {
 
   Future<void> refresh() async {
     _isLoading = true;
+    _lastRefreshError = null;
     notifyListeners();
     try {
       final statsRes = await _apiService.getAdminStats();
@@ -271,10 +275,16 @@ class DashboardProvider extends ChangeNotifier {
       } catch (_) {
         // Profile fetch failed, keep existing
       }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
+    } on DioException catch (e) {
+      _lastRefreshError = _extractErrorMessage(
+        e,
+        fallbackMessage:
+            'Could not load admin dashboard data. Check the API URL and backend server.',
+      );
+    } catch (_) {
+      _lastRefreshError =
+          'Could not load admin dashboard data. Check the API URL and backend server.';
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
@@ -364,9 +374,22 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  String _extractErrorMessage(DioException e) {
+  String _extractErrorMessage(
+    DioException e, {
+    String fallbackMessage = 'Request failed. Please try again.',
+  }) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Could not reach the backend API. Check the dashboard API URL and server status.';
+    }
+
     if (e.response?.statusCode == 401) {
       return 'Session expired. Please sign in again.';
+    }
+
+    if (e.response?.statusCode == 404) {
+      return 'Admin API endpoint was not found. Check the dashboard API URL.';
     }
 
     final data = e.response?.data;
@@ -390,7 +413,7 @@ class DashboardProvider extends ChangeNotifier {
       }
     }
 
-    return 'Request failed. Please try again.';
+    return fallbackMessage;
   }
 
   bool _isCatalogEntry(dynamic trip) {

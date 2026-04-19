@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/app_localization.dart';
 import '../../core/theme.dart';
 
 class ItineraryView extends StatefulWidget {
@@ -20,7 +21,8 @@ class ItineraryView extends StatefulWidget {
 class _ItineraryViewState extends State<ItineraryView> {
   int _currentTab = 0;
 
-  List<Map<String, dynamic>> get _itineraries => _asMapList(widget.trip['itineraries']);
+  List<Map<String, dynamic>> get _itineraries =>
+      _asMapList(widget.trip['itineraries']);
 
   List<Map<String, dynamic>> get _activities {
     final items = <Map<String, dynamic>>[];
@@ -30,7 +32,8 @@ class _ItineraryViewState extends State<ItineraryView> {
     return items;
   }
 
-  double get _budget => double.tryParse(widget.trip['budget']?.toString() ?? '') ?? 0;
+  double get _budget =>
+      double.tryParse(widget.trip['budget']?.toString() ?? '') ?? 0;
 
   int get _guestCount {
     return int.tryParse(
@@ -43,7 +46,9 @@ class _ItineraryViewState extends State<ItineraryView> {
   }
 
   int get _durationDays {
-    final start = DateTime.tryParse(widget.trip['start_date']?.toString() ?? '');
+    final start = DateTime.tryParse(
+      widget.trip['start_date']?.toString() ?? '',
+    );
     final end = DateTime.tryParse(widget.trip['end_date']?.toString() ?? '');
 
     if (start != null && end != null) {
@@ -53,7 +58,10 @@ class _ItineraryViewState extends State<ItineraryView> {
     return math.max(1, _itineraries.length);
   }
 
-  String get _destination => (widget.trip['destination'] ?? 'Unknown destination').toString();
+  String get _destination =>
+      (widget.trip['destination'] ??
+              AppStrings.current.tr('common.unknownDestination'))
+          .toString();
 
   String get _startDateLabel => _formatIsoDate(widget.trip['start_date']);
 
@@ -65,7 +73,10 @@ class _ItineraryViewState extends State<ItineraryView> {
 
     for (final activity in _activities) {
       final location = _activityLocation(activity);
-      if (location == 'Various locations') continue;
+      if (location == AppStrings.current.tr('common.variousLocations')) {
+        continue;
+      }
+
       final key = location.toLowerCase();
       if (seen.add(key)) {
         locations.add(location);
@@ -78,7 +89,7 @@ class _ItineraryViewState extends State<ItineraryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: context.appScaffoldColor,
       body: Column(
         children: [
           _buildHeader(context),
@@ -100,7 +111,12 @@ class _ItineraryViewState extends State<ItineraryView> {
         color: AppColors.g800,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.only(top: 56, left: 16, right: 16, bottom: 20),
+          padding: const EdgeInsets.only(
+            top: 56,
+            left: 16,
+            right: 16,
+            bottom: 20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -117,9 +133,9 @@ class _ItineraryViewState extends State<ItineraryView> {
                       foregroundColor: AppColors.g300,
                     ),
                     icon: const Icon(Icons.share_outlined, size: 16),
-                    label: const Text(
-                      'Share',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                    label: Text(
+                      context.tr('common.share'),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                 ],
@@ -144,11 +160,14 @@ class _ItineraryViewState extends State<ItineraryView> {
                       children: [
                         Text(
                           _destination,
-                          style: GoogleFonts.fraunces(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.white,
-                          ),
+                          style:
+                              (context.appLanguage.isRtl
+                              ? GoogleFonts.notoKufiArabic
+                              : GoogleFonts.fraunces)(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Wrap(
@@ -162,7 +181,8 @@ class _ItineraryViewState extends State<ItineraryView> {
                             ),
                             _HeaderMeta(
                               icon: Icons.group_outlined,
-                              text: '$_guestCount people',
+                              text:
+                                  '$_guestCount ${context.tr('common.people')}',
                             ),
                           ],
                         ),
@@ -182,9 +202,9 @@ class _ItineraryViewState extends State<ItineraryView> {
 
   Widget _buildTabs() {
     final tabs = [
-      ('Overview', 0),
-      ('Map', 1),
-      ('Budget', 2),
+      (context.tr('itinerary.overview'), 0),
+      (context.tr('itinerary.map'), 1),
+      (context.tr('itinerary.budgetTab'), 2),
     ];
 
     return Container(
@@ -222,10 +242,10 @@ class _ItineraryViewState extends State<ItineraryView> {
 
   Widget _buildOverviewContent() {
     if (_itineraries.isEmpty) {
-      return const _CenteredEmptyState(
+      return _CenteredEmptyState(
         icon: Icons.route_outlined,
-        title: 'No itinerary yet',
-        subtitle: 'Create or regenerate this trip to see the daily plan.',
+        title: context.tr('itinerary.noItinerary'),
+        subtitle: context.tr('itinerary.noItinerarySubtitle'),
       );
     }
 
@@ -236,17 +256,20 @@ class _ItineraryViewState extends State<ItineraryView> {
       itemBuilder: (context, index) {
         final day = _itineraries[index];
         final activities = _asMapList(day['activities']);
-        final dayLabel = 'Day ${day['day_number'] ?? index + 1}';
+        final dayLabel = context.tr(
+          'itinerary.day',
+          params: {'number': '${day['day_number'] ?? index + 1}'},
+        );
 
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: context.appSurfaceColor,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.gray100),
+            border: Border.all(color: context.appBorderColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: context.appShadowColor,
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
@@ -258,7 +281,10 @@ class _ItineraryViewState extends State<ItineraryView> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.g50,
                       borderRadius: BorderRadius.circular(999),
@@ -276,15 +302,18 @@ class _ItineraryViewState extends State<ItineraryView> {
                   Expanded(
                     child: Text(
                       _formatDayDate(index),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.gray600,
+                        color: context.appSubtextColor,
                       ),
                     ),
                   ),
                   Text(
-                    '${activities.length} stops',
+                    context.tr(
+                      'itinerary.stops',
+                      params: {'count': '${activities.length}'},
+                    ),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -295,25 +324,27 @@ class _ItineraryViewState extends State<ItineraryView> {
               ),
               const SizedBox(height: 14),
               if (activities.isEmpty)
-                const _InlineEmptyState(
+                _InlineEmptyState(
                   icon: Icons.pending_actions_outlined,
-                  title: 'No activities saved for this day',
-                  subtitle: 'This day exists, but no itinerary stops were returned.',
+                  title: context.tr('itinerary.noActivities'),
+                  subtitle: context.tr('itinerary.noActivitiesSubtitle'),
                 )
               else
-                ...activities.map(
-                  (activity) => Padding(
+                ...activities.map((activity) {
+                  return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _ActivityCard(
                       title: _activityName(activity),
                       location: _activityLocation(activity),
                       note: _activityNote(activity),
-                      slot: (activity['time_slot'] ?? 'Anytime').toString(),
+                      slot: context.strings.slotLabel(
+                        activity['time_slot']?.toString(),
+                      ),
                       icon: _iconForSlot(activity['time_slot']?.toString()),
                       accent: _colorForSlot(activity['time_slot']?.toString()),
                     ),
-                  ),
-                ),
+                  );
+                }),
             ],
           ),
         );
@@ -328,17 +359,17 @@ class _ItineraryViewState extends State<ItineraryView> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       children: [
         _SummaryPanel(
-          title: 'Trip route',
-          subtitle: '$_destination - ${stops.length} saved stops',
+          title: context.tr('itinerary.tripRoute'),
+          subtitle: context.tr(
+            'itinerary.savedStops',
+            params: {'destination': _destination, 'count': '${stops.length}'},
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Open the destination or any saved stop in your map app.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.gray600,
-                ),
+              Text(
+                context.tr('itinerary.mapIntro'),
+                style: TextStyle(fontSize: 12, color: context.appSubtextColor),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -346,7 +377,7 @@ class _ItineraryViewState extends State<ItineraryView> {
                 child: ElevatedButton.icon(
                   onPressed: () => _openMapSearch(_destination),
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Open destination in maps'),
+                  label: Text(context.tr('itinerary.openDestinationInMaps')),
                 ),
               ),
             ],
@@ -354,22 +385,22 @@ class _ItineraryViewState extends State<ItineraryView> {
         ),
         const SizedBox(height: 16),
         if (stops.isEmpty)
-          const _CenteredEmptyState(
+          _CenteredEmptyState(
             icon: Icons.location_off_outlined,
-            title: 'No saved map stops',
-            subtitle: 'This itinerary does not have activity locations yet.',
+            title: context.tr('itinerary.noSavedStops'),
+            subtitle: context.tr('itinerary.noSavedStopsSubtitle'),
           )
         else
-          ...stops.asMap().entries.map(
-            (entry) => Padding(
+          ...stops.asMap().entries.map((entry) {
+            return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _MapStopCard(
                 index: entry.key + 1,
                 location: entry.value,
                 onTap: () => _openMapSearch(entry.value),
               ),
-            ),
-          ),
+            );
+          }),
       ],
     );
   }
@@ -385,34 +416,50 @@ class _ItineraryViewState extends State<ItineraryView> {
     final perStop = totalBudget / stopCount;
 
     final breakdown = <_BudgetSlice>[
-      _BudgetSlice('Stay', totalBudget * 0.40, const Color(0xFF166534)),
-      _BudgetSlice('Food', totalBudget * 0.25, const Color(0xFF22C55E)),
-      _BudgetSlice('Transport', totalBudget * 0.15, const Color(0xFF6EE7B7)),
-      _BudgetSlice('Activities', totalBudget * 0.20, const Color(0xFFA7F3D0)),
+      _BudgetSlice(
+        context.tr('itinerary.sliceStay'),
+        totalBudget * 0.40,
+        const Color(0xFF166534),
+      ),
+      _BudgetSlice(
+        context.tr('itinerary.sliceFood'),
+        totalBudget * 0.25,
+        const Color(0xFF22C55E),
+      ),
+      _BudgetSlice(
+        context.tr('itinerary.sliceTransport'),
+        totalBudget * 0.15,
+        const Color(0xFF6EE7B7),
+      ),
+      _BudgetSlice(
+        context.tr('itinerary.sliceActivities'),
+        totalBudget * 0.20,
+        const Color(0xFFA7F3D0),
+      ),
     ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       children: [
         _SummaryPanel(
-          title: 'Budget summary',
+          title: context.tr('itinerary.budgetSummary'),
           subtitle: totalBudget > 0
-              ? 'This estimate is based on the saved trip budget.'
-              : 'No budget is saved on this trip yet.',
+              ? context.tr('itinerary.budgetSavedSubtitle')
+              : context.tr('itinerary.noBudgetSubtitle'),
           child: Column(
             children: [
               Row(
                 children: [
                   Expanded(
                     child: _MetricTile(
-                      label: 'Total',
+                      label: context.tr('common.total'),
                       value: _formatMoney(totalBudget),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _MetricTile(
-                      label: 'Per day',
+                      label: context.tr('itinerary.metricPerDay'),
                       value: _formatMoney(perDay),
                     ),
                   ),
@@ -423,14 +470,14 @@ class _ItineraryViewState extends State<ItineraryView> {
                 children: [
                   Expanded(
                     child: _MetricTile(
-                      label: 'Per person',
+                      label: context.tr('itinerary.metricPerPerson'),
                       value: _formatMoney(perGuest),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _MetricTile(
-                      label: 'Per stop',
+                      label: context.tr('itinerary.metricPerStop'),
                       value: _formatMoney(perStop),
                     ),
                   ),
@@ -441,8 +488,15 @@ class _ItineraryViewState extends State<ItineraryView> {
         ),
         const SizedBox(height: 16),
         _SummaryPanel(
-          title: 'Estimated breakdown',
-          subtitle: '$dayCount days - $guestCount people - $stopCount itinerary stops',
+          title: context.tr('itinerary.estimatedBreakdown'),
+          subtitle: context.tr(
+            'itinerary.breakdownSubtitle',
+            params: {
+              'days': '$dayCount',
+              'people': '$guestCount',
+              'stops': '$stopCount',
+            },
+          ),
           child: Column(
             children: [
               for (final slice in breakdown)
@@ -472,16 +526,24 @@ class _ItineraryViewState extends State<ItineraryView> {
   }
 
   String _activityName(Map<String, dynamic> activity) {
-    return (activity['activity_name'] ?? activity['title'] ?? activity['name'] ?? 'Activity').toString();
+    return (activity['activity_name'] ??
+            activity['title'] ??
+            activity['name'] ??
+            AppStrings.current.tr('common.activity'))
+        .toString();
   }
 
   String _activityLocation(Map<String, dynamic> activity) {
     final location = (activity['location'] ?? '').toString().trim();
-    return location.isEmpty ? 'Various locations' : location;
+    return location.isEmpty
+        ? AppStrings.current.tr('common.variousLocations')
+        : location;
   }
 
   String? _activityNote(Map<String, dynamic> activity) {
-    final note = (activity['notes'] ?? activity['note'] ?? '').toString().trim();
+    final note = (activity['notes'] ?? activity['note'] ?? '')
+        .toString()
+        .trim();
     return note.isEmpty ? null : note;
   }
 
@@ -513,32 +575,19 @@ class _ItineraryViewState extends State<ItineraryView> {
 
   String _formatIsoDate(dynamic raw) {
     final value = raw?.toString() ?? '';
-    if (value.isEmpty) return 'TBD';
+    if (value.isEmpty) return context.tr('common.tbd');
 
     final date = DateTime.tryParse(value);
     if (date == null) return value.split('T').first;
 
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return '${context.strings.monthShort(date.month)} ${date.day}, ${date.year}';
   }
 
   String _formatDayDate(int index) {
-    final start = DateTime.tryParse(widget.trip['start_date']?.toString() ?? '');
-    if (start == null) return 'Schedule';
+    final start = DateTime.tryParse(
+      widget.trip['start_date']?.toString() ?? '',
+    );
+    if (start == null) return context.tr('common.schedule');
 
     final date = start.add(Duration(days: index));
     return _formatIsoDate(date.toIso8601String());
@@ -555,7 +604,7 @@ class _ItineraryViewState extends State<ItineraryView> {
 
   Future<void> _openMapSearch(String query) async {
     if (query.trim().isEmpty) {
-      _showSnack('No location is available for this trip.');
+      _showSnack(context.tr('itinerary.noLocationForTrip'));
       return;
     }
 
@@ -565,34 +614,70 @@ class _ItineraryViewState extends State<ItineraryView> {
 
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
-      _showSnack('Could not open maps.');
+      _showSnack(context.tr('itinerary.couldNotOpenMaps'));
     }
   }
 
   Future<void> _shareTrip() async {
     final buffer = StringBuffer()
-      ..writeln('My AI Trip')
-      ..writeln('Destination: $_destination')
-      ..writeln('Dates: $_startDateLabel - $_endDateLabel')
-      ..writeln('Budget: ${_formatMoney(_budget)}')
-      ..writeln('Travelers: $_guestCount')
+      ..writeln(context.tr('itinerary.shareTitle'))
+      ..writeln(
+        context.tr(
+          'itinerary.shareDestination',
+          params: {'destination': _destination},
+        ),
+      )
+      ..writeln(
+        context.tr(
+          'itinerary.shareDates',
+          params: {'start': _startDateLabel, 'end': _endDateLabel},
+        ),
+      )
+      ..writeln(
+        context.tr(
+          'itinerary.shareBudget',
+          params: {'budget': _formatMoney(_budget)},
+        ),
+      )
+      ..writeln(
+        context.tr(
+          'itinerary.shareTravelers',
+          params: {'count': '$_guestCount'},
+        ),
+      )
       ..writeln();
 
     if (_itineraries.isEmpty) {
-      buffer.writeln('No itinerary has been generated for this trip yet.');
+      buffer.writeln(context.tr('itinerary.shareNoItinerary'));
     } else {
       for (final day in _itineraries) {
-        final dayNumber = day['day_number'] ?? '';
+        final dayNumber = '${day['day_number'] ?? ''}';
         final description = (day['description'] ?? '').toString().trim();
 
         buffer.writeln(
-          'Day $dayNumber${description.isNotEmpty ? ': $description' : ''}',
+          description.isNotEmpty
+              ? context.tr(
+                  'itinerary.shareDay',
+                  params: {'number': dayNumber, 'description': description},
+                )
+              : context.tr(
+                  'itinerary.shareDayWithoutDescription',
+                  params: {'number': dayNumber},
+                ),
         );
 
         for (final activity in _asMapList(day['activities'])) {
-          final slot = (activity['time_slot'] ?? 'Anytime').toString();
           buffer.writeln(
-            '- $slot: ${_activityName(activity)} @ ${_activityLocation(activity)}',
+            context.tr(
+              'itinerary.shareStop',
+              params: {
+                'slot': context.strings.slotLabel(
+                  activity['time_slot']?.toString(),
+                ),
+                'title': _activityName(activity),
+                'location': _activityLocation(activity),
+              },
+            ),
           );
         }
 
@@ -604,20 +689,23 @@ class _ItineraryViewState extends State<ItineraryView> {
       await SharePlus.instance.share(
         ShareParams(
           text: buffer.toString().trim(),
-          subject: 'AITP itinerary for $_destination',
+          subject: context.tr(
+            'itinerary.shareSubject',
+            params: {'destination': _destination},
+          ),
         ),
       );
     } catch (_) {
       if (mounted) {
-        _showSnack('Could not open the share sheet.');
+        _showSnack(context.tr('itinerary.couldNotShare'));
       }
     }
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -625,10 +713,7 @@ class _HeaderMeta extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _HeaderMeta({
-    required this.icon,
-    required this.text,
-  });
+  const _HeaderMeta({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -670,7 +755,7 @@ class _TabButton extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.white : Colors.transparent,
+          color: isActive ? context.appSurfaceColor : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
@@ -679,7 +764,9 @@ class _TabButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: isActive ? AppColors.g800 : AppColors.white.withValues(alpha: 0.75),
+            color: isActive
+                ? AppColors.g800
+                : AppColors.white.withValues(alpha: 0.75),
           ),
         ),
       ),
@@ -703,12 +790,12 @@ class _SummaryPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.appSurfaceColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: context.appBorderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: context.appShadowColor,
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -719,19 +806,16 @@ class _SummaryPanel extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: AppColors.gray800,
+              color: context.appTextColor,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.gray600,
-            ),
+            style: TextStyle(fontSize: 12, color: context.appSubtextColor),
           ),
           const SizedBox(height: 16),
           child,
@@ -745,29 +829,26 @@ class _MetricTile extends StatelessWidget {
   final String label;
   final String value;
 
-  const _MetricTile({
-    required this.label,
-    required this.value,
-  });
+  const _MetricTile({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.gray50,
+        color: context.appSurfaceAltColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: context.appBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: AppColors.gray600,
+              color: context.appSubtextColor,
             ),
           ),
           const SizedBox(height: 6),
@@ -807,9 +888,9 @@ class _ActivityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.gray50,
+        color: context.appSurfaceAltColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: context.appBorderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,27 +911,27 @@ class _ActivityCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.gray800,
+                    color: context.appTextColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   location,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.gray600,
+                    color: context.appSubtextColor,
                   ),
                 ),
                 if (note != null) ...[
                   const SizedBox(height: 6),
                   Text(
                     note!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.gray400,
+                      color: context.appMutedTextColor,
                     ),
                   ),
                 ],
@@ -861,9 +942,9 @@ class _ActivityCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: context.appSurfaceColor,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: AppColors.gray100),
+              border: Border.all(color: context.appBorderColor),
             ),
             child: Text(
               slot,
@@ -896,12 +977,12 @@ class _MapStopCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.appSurfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: context.appBorderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: context.appShadowColor,
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -931,17 +1012,14 @@ class _MapStopCard extends StatelessWidget {
           Expanded(
             child: Text(
               location,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppColors.gray800,
+                color: context.appTextColor,
               ),
             ),
           ),
-          TextButton(
-            onPressed: onTap,
-            child: const Text('Open'),
-          ),
+          TextButton(onPressed: onTap, child: Text(context.tr('common.open'))),
         ],
       ),
     );
@@ -972,10 +1050,10 @@ class _BudgetBar extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: AppColors.gray800,
+                color: context.appTextColor,
               ),
             ),
             const Spacer(),
@@ -995,7 +1073,7 @@ class _BudgetBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: clampedPercent,
             minHeight: 10,
-            backgroundColor: AppColors.gray100,
+            backgroundColor: context.appBorderColor,
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),
@@ -1020,11 +1098,7 @@ class _CenteredEmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: _InlineEmptyState(
-          icon: icon,
-          title: title,
-          subtitle: subtitle,
-        ),
+        child: _InlineEmptyState(icon: icon, title: title, subtitle: subtitle),
       ),
     );
   }
@@ -1047,9 +1121,9 @@ class _InlineEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.appSurfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: context.appBorderColor),
       ),
       child: Column(
         children: [
@@ -1058,20 +1132,17 @@ class _InlineEmptyState extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: AppColors.gray800,
+              color: context.appTextColor,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.gray600,
-            ),
+            style: TextStyle(fontSize: 12, color: context.appSubtextColor),
           ),
         ],
       ),

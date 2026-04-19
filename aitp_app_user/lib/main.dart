@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'core/app_localization.dart';
+import 'core/app_settings_provider.dart';
 import 'core/auth_provider.dart';
+import 'core/language_provider.dart';
 import 'core/trip_provider.dart';
 import 'core/theme.dart';
 import 'features/auth/splash_view.dart';
@@ -14,26 +17,26 @@ import 'features/itinerary/itinerary_view.dart';
 import 'features/chat/chat_view.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
+    Future.microtask(() async {
+      await ref.read(languageProvider.notifier).loadLanguage();
+      await ref.read(appSettingsProvider.notifier).ensureLoaded();
+    });
     _router = GoRouter(
       initialLocation: '/splash',
       routes: [
@@ -41,10 +44,7 @@ class _MyAppState extends State<MyApp> {
           path: '/splash',
           builder: (context, state) => const SplashPage(),
         ),
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginView(),
-        ),
+        GoRoute(path: '/login', builder: (context, state) => const LoginView()),
         GoRoute(
           path: '/register',
           builder: (context, state) => const RegisterView(),
@@ -92,10 +92,29 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final language = ref.watch(languageProvider);
+    final strings = AppStrings(language);
+    AppStrings.currentLanguage = language;
+    final appSettings = ref.watch(appSettingsProvider);
+
     return MaterialApp.router(
-      title: 'AI Trip Planner',
+      title: strings.tr('app.title'),
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      locale: language.locale,
+      theme: AppTheme.lightTheme(language),
+      darkTheme: AppTheme.darkTheme(language),
+      themeMode: appSettings.themeMode,
+      builder: (context, child) {
+        return AppLanguageScope(
+          language: language,
+          child: Directionality(
+            textDirection: language.isRtl
+                ? TextDirection.rtl
+                : TextDirection.ltr,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       routerConfig: _router,
     );
   }
@@ -118,7 +137,10 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   void _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
+    await ref.read(appSettingsProvider.notifier).ensureLoaded();
     final auth = ref.read(authProvider);
+    await auth.ensureInitialized();
+    if (!mounted) return;
     if (auth.isAuthenticated) {
       await ref.read(tripProvider).fetchTrips();
       if (!mounted) return;

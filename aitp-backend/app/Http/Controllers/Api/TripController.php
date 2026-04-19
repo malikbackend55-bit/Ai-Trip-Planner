@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Trip;
+use App\Services\GeminiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
-use App\Services\GeminiService;
 
 class TripController extends Controller
 {
@@ -17,9 +16,11 @@ class TripController extends Controller
     {
         $this->geminiService = $geminiService;
     }
+
     public function index()
     {
         $trips = Auth::user()->trips()->with('itineraries.activities')->orderBy('created_at', 'desc')->get();
+
         return response()->json($trips);
     }
 
@@ -42,6 +43,7 @@ class TripController extends Controller
     public function show($id)
     {
         $trip = Auth::user()->trips()->with('itineraries.activities')->findOrFail($id);
+
         return response()->json($trip);
     }
 
@@ -65,12 +67,15 @@ class TripController extends Controller
 
     public function generate(Request $request)
     {
+        @set_time_limit(300);
+
         $validated = $request->validate([
             'destination' => 'required|string|max:255',
             'start_date' => 'required|date',
             'end_date' => 'required|date',
             'interests' => 'required|array',
             'budget' => 'nullable|numeric',
+            'language' => 'nullable|string|in:en,ckb',
         ]);
 
         $start = new \DateTime($validated['start_date']);
@@ -90,7 +95,8 @@ class TripController extends Controller
         $itineraryData = $this->geminiService->generateItinerary([
             'destination' => $validated['destination'],
             'interests' => $validated['interests'],
-            'days' => $days
+            'days' => $days,
+            'language' => $validated['language'] ?? 'en',
         ]);
 
         // Save Itineraries and Activities

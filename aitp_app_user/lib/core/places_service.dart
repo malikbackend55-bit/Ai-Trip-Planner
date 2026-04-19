@@ -5,7 +5,7 @@ class PlacesService {
   final Dio _dio = Dio();
   // TODO: Replace with your actual Google Maps API Key
   final String _apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
-  
+
   Future<List<String>> getAutocompleteSuggestions(String query) async {
     if (query.isEmpty) return [];
 
@@ -27,7 +27,6 @@ class PlacesService {
         debugPrint('Places API Error: ${response.data['status']}');
         return [];
       }
-
     } catch (e) {
       debugPrint('Error fetching places: $e');
       return [];
