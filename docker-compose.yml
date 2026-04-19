@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile
     image: aitp-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    env_file:
+      - path: ./aitp-backend/.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,28 +23,6 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSLMODE: ${DB_SSLMODE:-prefer}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
-      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-2.5-flash-lite}
-      GEMINI_REQUEST_TIMEOUT: ${GEMINI_REQUEST_TIMEOUT:-60}
-      GEMINI_CHAT_MAX_OUTPUT_TOKENS: ${GEMINI_CHAT_MAX_OUTPUT_TOKENS:-320}
-      GEMINI_ITINERARY_MAX_OUTPUT_TOKENS: ${GEMINI_ITINERARY_MAX_OUTPUT_TOKENS:-4096}
-      GEMINI_FATAL_COOLDOWN_SECONDS: ${GEMINI_FATAL_COOLDOWN_SECONDS:-900}
-      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
-      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai/v1}
-      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
-      MISTRAL_REQUEST_TIMEOUT: ${MISTRAL_REQUEST_TIMEOUT:-60}
-      MISTRAL_CHAT_MAX_TOKENS: ${MISTRAL_CHAT_MAX_TOKENS:-900}
-      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-false}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://127.0.0.1:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3:latest}
-      OLLAMA_REQUEST_TIMEOUT: ${OLLAMA_REQUEST_TIMEOUT:-120}
-      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-10m}
-      OPEN_METEO_ENABLED: ${OPEN_METEO_ENABLED:-false}
-      OPEN_METEO_GEOCODING_URL: ${OPEN_METEO_GEOCODING_URL:-https://geocoding-api.open-meteo.com/v1/search}
-      OPEN_METEO_FORECAST_URL: ${OPEN_METEO_FORECAST_URL:-https://api.open-meteo.com/v1/forecast}
-      OPEN_METEO_TIMEOUT: ${OPEN_METEO_TIMEOUT:-12}
     networks:
       - aitp-network
     healthcheck:

@@ -4,20 +4,23 @@ services:
       context: ./aitp-backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - path: ./aitp-backend/.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_URL: ${APP_URL}
-      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-}
+      APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-aitp}
       DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSLMODE: prefer
       SESSION_DRIVER: ${SESSION_DRIVER:-database}
       CACHE_STORE: ${CACHE_STORE:-database}
@@ -57,7 +60,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-aitp}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
