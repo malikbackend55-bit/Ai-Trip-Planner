@@ -6,16 +6,20 @@ services:
       dockerfile: Dockerfile
     image: aitp-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - APP_ENV=${APP_ENV:-production}
-      - APP_KEY=${APP_KEY}
-      - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_CONNECTION=pgsql
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:-}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-aitp}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSLMODE: ${DB_SSLMODE:-prefer}
     networks:
       - aitp-network
     healthcheck:
@@ -23,6 +27,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-aitp}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aitp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-aitp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # User Frontend (Web)
   user-app:
@@ -44,7 +66,7 @@ services:
       context: ./aitp_dashboard
       dockerfile: Dockerfile
       args:
-        API_URL: ${PUBLIC_API_URL}
+        API_URL: ${PUBLIC_API_URL:-}
     image: aitp-admin-dashboard:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -55,3 +77,6 @@ services:
 networks:
   aitp-network:
     driver: bridge
+
+volumes:
+  postgres_data:
